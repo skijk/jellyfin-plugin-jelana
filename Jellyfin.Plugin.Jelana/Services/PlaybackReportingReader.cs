@@ -284,6 +284,8 @@ public sealed class PlaybackReportingReader
                 new PersonalPeriod(rows.GetInt32(1), rows.GetInt32(2), rows.GetInt64(3)),
                 new PersonalPeriod(rows.GetInt32(4), rows.GetInt32(5), rows.GetInt64(6)),
                 new PersonalPeriod(rows.GetInt32(7), rows.GetInt32(8), rows.GetInt64(9)),
+                new ViewingHabits("–", "–", 0, 0, 0),
+                new ViewingHabits("–", "–", 0, 0, 0),
                 new ViewingHabits("–", "–", 0, 0, 0));
         }
 
@@ -296,16 +298,49 @@ public sealed class PlaybackReportingReader
         Dictionary<string, PersonalAnalytics> result,
         CancellationToken token)
     {
+        var habits30 = await CalculateHabitsAsync(db, 30, token).ConfigureAwait(false);
+        var habits365 = await CalculateHabitsAsync(db, 365, token).ConfigureAwait(false);
+        var habitsAll = await CalculateHabitsAsync(db, null, token).ConfigureAwait(false);
+
+        foreach (var (id, analytics) in result.ToList())
+        {
+            result[id] = analytics with
+            {
+                Habits30Days = CreateHabits(habits30.GetValueOrDefault(id), analytics.Last30Days),
+                HabitsLastYear = CreateHabits(habits365.GetValueOrDefault(id), analytics.LastYear),
+                HabitsAllTime = CreateHabits(habitsAll.GetValueOrDefault(id), analytics.AllTime)
+            };
+        }
+    }
+
+    private static ViewingHabits CreateHabits(
+        (string? Weekday, string? TimeOfDay, long LongestSession) values,
+        PersonalPeriod period)
+    {
+        var total = period.Movies + period.Episodes;
+        var moviePercent = total == 0 ? 0 : (int)Math.Round(period.Movies * 100d / total);
+        return new ViewingHabits(
+            values.Weekday ?? "–",
+            values.TimeOfDay ?? "–",
+            values.LongestSession,
+            moviePercent,
+            total == 0 ? 0 : 100 - moviePercent);
+    }
+
+    private static async Task<Dictionary<string, (string? Weekday, string? TimeOfDay, long LongestSession)>>
+        CalculateHabitsAsync(SqliteConnection db, int? days, CancellationToken token)
+    {
+        var where = days.HasValue ? "WHERE DateCreated >= $since" : string.Empty;
         var weekdays = new Dictionary<string, (string Name, int Count)>();
         await using (var command = db.CreateCommand())
         {
-            command.CommandText = SessionCte("WHERE DateCreated >= $since") + """
+            command.CommandText = SessionCte(where) + """
                 SELECT REPLACE(LOWER(UserId), '-', ''), strftime('%w', DateCreated), SUM(NewPlay)
                 FROM sessions
                 GROUP BY REPLACE(LOWER(UserId), '-', ''), strftime('%w', DateCreated)
                 ORDER BY 3 DESC
                 """;
-            command.Parameters.AddWithValue("$since", Since(365));
+            if (days.HasValue) command.Parameters.AddWithValue("$since", Since(days.Value));
             await using var rows = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
             var names = new[] { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
             while (await rows.ReadAsync(token).ConfigureAwait(false))
@@ -322,7 +357,7 @@ public sealed class PlaybackReportingReader
         var times = new Dictionary<string, (string Name, int Count)>();
         await using (var command = db.CreateCommand())
         {
-            command.CommandText = SessionCte("WHERE DateCreated >= $since") + """
+            command.CommandText = SessionCte(where) + """
                 SELECT REPLACE(LOWER(UserId), '-', ''),
                        CASE
                            WHEN CAST(strftime('%H', DateCreated) AS INTEGER) < 6 THEN 'Night · 00–06'
@@ -335,7 +370,7 @@ public sealed class PlaybackReportingReader
                 GROUP BY REPLACE(LOWER(UserId), '-', ''), 2
                 ORDER BY 3 DESC
                 """;
-            command.Parameters.AddWithValue("$since", Since(365));
+            if (days.HasValue) command.Parameters.AddWithValue("$since", Since(days.Value));
             await using var rows = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
             while (await rows.ReadAsync(token).ConfigureAwait(false))
             {
@@ -356,6 +391,7 @@ public sealed class PlaybackReportingReader
                     SELECT DateCreated, UserId, COALESCE(PlayDuration, 0) AS PlayDuration,
                            LAG(DateCreated) OVER (PARTITION BY UserId ORDER BY DateCreated) AS PreviousDate
                     FROM PlaybackActivity
+                    {{where}}
                 ),
                 numbered AS (
                     SELECT *,
@@ -374,6 +410,7 @@ public sealed class PlaybackReportingReader
                 )
                 SELECT NormalizedUserId, MAX(Duration) FROM totals GROUP BY NormalizedUserId
                 """;
+            if (days.HasValue) command.Parameters.AddWithValue("$since", Since(days.Value));
             await using var rows = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
             while (await rows.ReadAsync(token).ConfigureAwait(false))
             {
@@ -381,20 +418,18 @@ public sealed class PlaybackReportingReader
             }
         }
 
-        foreach (var (id, analytics) in result.ToList())
+        var ids = weekdays.Keys.Concat(times.Keys).Concat(longest.Keys).Distinct(StringComparer.OrdinalIgnoreCase);
+        var result = new Dictionary<string, (string? Weekday, string? TimeOfDay, long LongestSession)>(
+            StringComparer.OrdinalIgnoreCase);
+        foreach (var id in ids)
         {
-            var total = analytics.LastYear.Movies + analytics.LastYear.Episodes;
-            var moviePercent = total == 0 ? 0 : (int)Math.Round(analytics.LastYear.Movies * 100d / total);
-            result[id] = analytics with
-            {
-                Habits = new ViewingHabits(
-                    weekdays.GetValueOrDefault(id).Name ?? "–",
-                    times.GetValueOrDefault(id).Name ?? "–",
-                    longest.GetValueOrDefault(id),
-                    moviePercent,
-                    total == 0 ? 0 : 100 - moviePercent)
-            };
+            result[id] = (
+                weekdays.GetValueOrDefault(id).Name,
+                times.GetValueOrDefault(id).Name,
+                longest.GetValueOrDefault(id));
         }
+
+        return result;
     }
 
     private async Task<IReadOnlyList<TrendingItem>> TrendingAsync(

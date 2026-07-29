@@ -49,13 +49,24 @@ Injector, Jelana can add **Analytics** for every signed-in user. Add this loader
 to JS Injector:
 
 ```js
-if (!document.getElementById('jelana-menu-loader')) {
-    const script = document.createElement('script');
-    script.id = 'jelana-menu-loader';
-    script.src = ApiClient.getUrl('Jelana/Menu.js', { version: '0.1.10.0' });
-    document.head.appendChild(script);
-}
+(() => {
+    const loadJelanaMenu = () => {
+        if (!window.ApiClient) {
+            window.setTimeout(loadJelanaMenu, 500);
+            return;
+        }
+
+        if (document.getElementById('jelana-menu-loader')) return;
+        const script = document.createElement('script');
+        script.id = 'jelana-menu-loader';
+        script.src = ApiClient.getUrl('Jelana/Menu.js', { version: '0.1.11.0' });
+        document.head.appendChild(script);
+    };
+
+    loadJelanaMenu();
+})();
 ```
 
 The link opens the authenticated user page at `/Jelana/User`. Menu behavior and
-future compatibility fixes remain bundled in Jelana itself.
+future compatibility fixes remain bundled in Jelana itself. Enable
+**Requires Authentication** for this script in JS Injector.

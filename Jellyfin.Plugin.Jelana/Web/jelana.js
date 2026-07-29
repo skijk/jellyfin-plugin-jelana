@@ -1,7 +1,7 @@
 (() => {
     'use strict';
     const STYLE_ID = 'jelana-dashboard-styles';
-    const VERSION = '0.1.10.0';
+    const VERSION = '0.1.11.0';
     const embeddedInJellyfin = typeof window.ApiClient !== 'undefined';
     const basePath = embeddedInJellyfin
         ? ''
@@ -85,6 +85,7 @@
     }
     ensureStyles();
     const page = document.querySelector('#jelanaPage');
+    let loadedPersonal = null;
     function setupTabs() {
         page.querySelectorAll('[data-jelana-tabs]').forEach(panel => {
             const buttons = panel.querySelectorAll('[data-tab]');
@@ -102,6 +103,9 @@
                     contents.forEach(content => {
                         content.hidden = content.dataset.tabContent !== selected;
                     });
+                    if (panel.dataset.jelanaTabs === 'personal') {
+                        renderPersonalHabits(selected);
+                    }
                 });
             });
         });
@@ -185,6 +189,26 @@
         ['Episode plays', pick(period, 'episodes')],
         ['Watch time', duration(pick(period, 'durationSeconds'))]
     ]);
+    const renderPersonalHabits = selected => {
+        if (!loadedPersonal) return;
+        const periods = {
+            personal30: ['habits30Days', 'Split over the last 30 days'],
+            personal365: ['habitsLastYear', 'Split over the last year'],
+            personalAll: ['habitsAllTime', 'All-time split']
+        };
+        const [property, caption] = periods[selected] || periods.personal30;
+        const habits = pick(loadedPersonal, property);
+        page.querySelector('#jelanaFavoriteDay').textContent = pick(habits, 'favoriteWeekday');
+        page.querySelector('#jelanaFavoriteTime').textContent = pick(habits, 'favoriteTimeOfDay');
+        page.querySelector('#jelanaLongestSession').textContent =
+            duration(pick(habits, 'longestSessionSeconds'));
+        const moviePercent = Number(pick(habits, 'moviePercent') || 0);
+        const episodePercent = Number(pick(habits, 'episodePercent') || 0);
+        page.querySelector('#jelanaMoviePercent').textContent = `${moviePercent}%`;
+        page.querySelector('#jelanaEpisodePercent').textContent = `${episodePercent}%`;
+        page.querySelector('#jelanaSplitPeriod').textContent = caption;
+        page.querySelector('#jelanaMediaDonut').style.setProperty('--movie-share', `${moviePercent}%`);
+    };
     async function load() {
         const loading = page.querySelector('#jelanaLoading');
         try {
@@ -198,6 +222,7 @@
             page.querySelector('#jelanaMetrics').replaceChildren(...metrics.map(([label, value]) => {
                 const card = document.createElement('article');
                 card.className = 'jelana-panel jelana-metric';
+                card.dataset.scopeLabel = 'Server-wide';
                 const strong = document.createElement('strong');
                 const span = document.createElement('span');
                 strong.textContent = String(value);
@@ -313,16 +338,9 @@
                 personalFacts('#jelanaPersonal30', pick(personal, 'last30Days'));
                 personalFacts('#jelanaPersonal365', pick(personal, 'lastYear'));
                 personalFacts('#jelanaPersonalAll', pick(personal, 'allTime'));
-                const habits = pick(personal, 'habits');
-                page.querySelector('#jelanaFavoriteDay').textContent = pick(habits, 'favoriteWeekday');
-                page.querySelector('#jelanaFavoriteTime').textContent = pick(habits, 'favoriteTimeOfDay');
-                page.querySelector('#jelanaLongestSession').textContent =
-                    duration(pick(habits, 'longestSessionSeconds'));
-                const moviePercent = Number(pick(habits, 'moviePercent') || 0);
-                const episodePercent = Number(pick(habits, 'episodePercent') || 0);
-                page.querySelector('#jelanaMoviePercent').textContent = `${moviePercent}%`;
-                page.querySelector('#jelanaEpisodePercent').textContent = `${episodePercent}%`;
-                page.querySelector('#jelanaMediaDonut').style.setProperty('--movie-share', `${moviePercent}%`);
+                loadedPersonal = personal;
+                const selected = page.querySelector('[data-jelana-tabs="personal"] [data-tab].is-active')?.dataset.tab;
+                renderPersonalHabits(selected || 'personal30');
                 page.querySelector('#jelanaPersonalPanel').hidden = false;
             } catch {
                 page.querySelector('#jelanaPersonalPanel').hidden = true;

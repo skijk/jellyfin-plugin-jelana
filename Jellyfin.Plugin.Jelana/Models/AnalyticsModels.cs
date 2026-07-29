@@ -27,7 +27,9 @@ public sealed record PersonalAnalytics(
     PersonalPeriod Last30Days,
     PersonalPeriod LastYear,
     PersonalPeriod AllTime,
-    ViewingHabits Habits);
+    ViewingHabits Habits30Days,
+    ViewingHabits HabitsLastYear,
+    ViewingHabits HabitsAllTime);
 public sealed record MonthlyTrend(PlaybackSummary Current, PlaybackSummary Previous);
 public sealed record TrendingItem(
     string Id,

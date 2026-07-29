@@ -43,11 +43,11 @@
             <div id="jelanaLoading" class="jelana-panel">Loading the latest hourly snapshot…</div>
             <main id="jelanaContent" hidden>
                 <section id="jelanaMetrics" class="jelana-metrics"></section>
-                <section class="jelana-panel jelana-activity-panel">
-                    <h2>Activity · 30 days</h2>
+                <section class="jelana-panel jelana-activity-panel" data-scope-label="Server-wide">
+                    <h2>Server activity · 30 days</h2>
                     <div id="jelanaActivity" class="jelana-chart"></div>
                 </section>
-                <section id="jelanaPersonalPanel" class="jelana-panel jelana-personal-panel jelana-tab-panel" data-jelana-tabs="personal" hidden>
+                <section id="jelanaPersonalPanel" class="jelana-panel jelana-personal-panel jelana-tab-panel" data-jelana-tabs="personal" data-scope-label="Personal" hidden>
                     <div class="jelana-panel-heading">
                         <h2>My analytics</h2>
                         <div class="jelana-tabs" role="tablist" aria-label="Period for my analytics">
@@ -67,20 +67,20 @@
                         </div>
                         <div class="jelana-media-split">
                             <div id="jelanaMediaDonut" class="jelana-donut" aria-hidden="true"></div>
-                            <div>
-                                <strong>Movies <span id="jelanaMoviePercent">0%</span></strong>
-                                <strong>TV <span id="jelanaEpisodePercent">0%</span></strong>
-                                <small>Split over the last year</small>
+                            <div class="jelana-split-legend">
+                                <strong><i class="jelana-legend-dot is-movie"></i>Movies <span id="jelanaMoviePercent">0%</span></strong>
+                                <strong><i class="jelana-legend-dot is-tv"></i>TV <span id="jelanaEpisodePercent">0%</span></strong>
+                                <small id="jelanaSplitPeriod">Split over the last 30 days</small>
                             </div>
                         </div>
                     </div>
                 </section>
                 <section class="jelana-grid">
-                    <article class="jelana-panel">
+                    <article class="jelana-panel" data-scope-label="Server-wide">
                         <h2>Library</h2>
                         <div id="jelanaLibrary" class="jelana-facts"></div>
                     </article>
-                    <article class="jelana-panel jelana-tab-panel" data-jelana-tabs="new">
+                    <article class="jelana-panel jelana-tab-panel" data-jelana-tabs="new" data-scope-label="Server-wide">
                         <div class="jelana-panel-heading">
                             <h2>New in the library</h2>
                             <div class="jelana-tabs" role="tablist" aria-label="Period for new content">
@@ -91,24 +91,24 @@
                         <div id="jelanaNew7" class="jelana-facts" data-tab-content="7"></div>
                         <div id="jelanaNew30" class="jelana-facts" data-tab-content="30" hidden></div>
                     </article>
-                    <article class="jelana-panel">
+                    <article class="jelana-panel" data-scope-label="Server-wide">
                         <h2>Monthly trend</h2>
                         <div id="jelanaMonthlyTrend" class="jelana-trend-facts"></div>
                         <p class="jelana-muted jelana-caption">Last 30 days compared with the previous 30 days.</p>
                     </article>
                 </section>
                 <section class="jelana-grid">
-                    <article class="jelana-panel"><h2>Most played movies</h2><ol id="jelanaMovies"></ol></article>
-                    <article class="jelana-panel"><h2>Most played series</h2><ol id="jelanaSeries"></ol></article>
-                    <article class="jelana-panel"><h2>Most active users</h2><ol id="jelanaUsers"></ol></article>
+                    <article class="jelana-panel" data-scope-label="Server-wide"><h2>Most played movies</h2><ol id="jelanaMovies"></ol></article>
+                    <article class="jelana-panel" data-scope-label="Server-wide"><h2>Most played series</h2><ol id="jelanaSeries"></ol></article>
+                    <article class="jelana-panel" data-scope-label="Server-wide"><h2>Most active users</h2><ol id="jelanaUsers"></ol></article>
                 </section>
-                <section class="jelana-panel jelana-trending-panel">
+                <section class="jelana-panel jelana-trending-panel" data-scope-label="Server-wide">
                     <h2>Hot right now</h2>
                     <p class="jelana-muted jelana-caption">Last 7 days compared with the previous 7 days.</p>
                     <ol id="jelanaTrending"></ol>
                 </section>
                 <section class="jelana-grid">
-                    <article class="jelana-panel jelana-tab-panel" data-jelana-tabs="profile">
+                    <article class="jelana-panel jelana-tab-panel" data-jelana-tabs="profile" data-scope-label="Server-wide">
                         <div class="jelana-panel-heading">
                             <h2>Medieprofil</h2>
                             <div class="jelana-tabs" role="tablist" aria-label="Medieprofil">
@@ -121,7 +121,7 @@
                         <div data-tab-content="resolution" hidden><ol id="jelanaResolution"></ol></div>
                         <div data-tab-content="audio" hidden><ol id="jelanaAudio"></ol></div>
                     </article>
-                    <article class="jelana-panel jelana-tab-panel" data-jelana-tabs="playback">
+                    <article class="jelana-panel jelana-tab-panel" data-jelana-tabs="playback" data-scope-label="Server-wide">
                         <div class="jelana-panel-heading">
                             <h2>Playback</h2>
                             <div class="jelana-tabs" role="tablist" aria-label="Playback analytics">
@@ -136,7 +136,7 @@
             </main>
         </div>
     </div>
-    <script src="/Jelana/Client.js?v=0.1.10.0"></script>
+    <script src="/Jelana/Client.js?v=0.1.11.0"></script>
 </div>
 </body>
 </html>

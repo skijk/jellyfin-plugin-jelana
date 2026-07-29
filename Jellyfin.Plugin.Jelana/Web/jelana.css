@@ -9,7 +9,12 @@
 .jelana-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1rem;margin-bottom:1rem}
 .jelana-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;margin-bottom:1rem}
 .jelana-grid-wide{grid-template-columns:.8fr 1.15fr .9fr}
-.jelana-panel{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:1.25rem}
+.jelana-panel{position:relative;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:1.25rem}
+.jelana-panel[data-scope-label]:after{content:attr(data-scope-label);position:absolute;top:1rem;right:1rem;padding:.22rem .48rem;border-radius:999px;background:rgba(255,255,255,.08);font-size:.68rem;font-weight:600;letter-spacing:.03em;line-height:1.2;opacity:.72}
+.jelana-panel[data-scope-label] h2{padding-right:5.5rem}
+.jelana-panel[data-scope-label="Personal"]:after{background:rgba(0,164,220,.2);color:#65ccef;opacity:1}
+.jelana-metric[data-scope-label]{padding-top:2.5rem}
+.jelana-tab-panel[data-scope-label] .jelana-panel-heading{margin-right:5.5rem}
 .jelana-panel h2{font-size:1.15rem;margin:0 0 1rem}
 .jelana-metric strong{display:block;font-size:2rem}
 .jelana-metric span{opacity:.7}
@@ -42,6 +47,9 @@
 .jelana-media-split strong{margin:.25rem 0}
 .jelana-media-split strong span{float:right;margin-left:1.2rem}
 .jelana-media-split small{margin-top:.55rem;opacity:.58}
+.jelana-legend-dot{display:inline-block;width:.7rem;height:.7rem;margin-right:.45rem;border-radius:50%}
+.jelana-legend-dot.is-movie{background:var(--jf-palette-primary-main,#00a4dc)}
+.jelana-legend-dot.is-tv{background:#7656d6}
 .jelana-donut{width:82px;height:82px;flex:none;border-radius:50%;background:conic-gradient(var(--jf-palette-primary-main,#00a4dc) 0 var(--movie-share,0%),#7656d6 var(--movie-share,0%) 100%);position:relative}
 .jelana-donut:after{content:"";position:absolute;inset:18px;border-radius:50%;background:#1b1b1b}
 .jelana-trend-facts{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
@@ -69,5 +77,5 @@
 .jelana-recent strong{display:block;margin-top:.45rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media(max-width:1200px){.jelana-grid-wide{grid-template-columns:1fr 1fr}.jelana-recent{grid-template-columns:repeat(4,1fr)}}
 @media(max-width:800px){.jelana-metrics,.jelana-grid,.jelana-grid-wide{grid-template-columns:1fr}.jelana-shell{padding:1rem}.jelana-panel{padding:1rem}.jelana-habits{grid-template-columns:1fr}.jelana-recent{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:620px){.jelana-header{display:block}.jelana-panel-heading{display:block}.jelana-panel-heading h2{margin-bottom:.8rem}.jelana-tabs{display:flex;width:100%;box-sizing:border-box}.jelana-tabs button{flex:1;min-height:44px;font-size:.9rem;padding:.55rem .5rem}.jelana-personal-facts{grid-template-columns:1fr}.jelana-recent{grid-template-columns:repeat(2,1fr)}.jelana-ranking-thumb{width:34px;height:50px}.jelana-chart{height:185px;gap:2px;padding-left:2px;padding-right:2px}.jelana-chart-date{font-size:.62rem}}
+@media(max-width:620px){.jelana-header{display:block}.jelana-panel-heading{display:block}.jelana-panel-heading h2{margin-bottom:.8rem}.jelana-tab-panel[data-scope-label] .jelana-panel-heading{margin-right:0;padding-top:1.8rem}.jelana-tabs{display:flex;width:100%;box-sizing:border-box}.jelana-tabs button{flex:1;min-height:44px;font-size:.9rem;padding:.55rem .5rem}.jelana-personal-facts{grid-template-columns:1fr}.jelana-recent{grid-template-columns:repeat(2,1fr)}.jelana-ranking-thumb{width:34px;height:50px}.jelana-chart{height:185px;gap:2px;padding-left:2px;padding-right:2px}.jelana-chart-date{font-size:.62rem}}
 @media(pointer:coarse){.jelana-tabs button{min-height:44px}}

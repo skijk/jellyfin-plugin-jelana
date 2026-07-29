@@ -39,6 +39,8 @@ public sealed class SnapshotStore
                 new PersonalPeriod(0, 0, 0),
                 new PersonalPeriod(0, 0, 0),
                 new PersonalPeriod(0, 0, 0),
+                new ViewingHabits("–", "–", 0, 0, 0),
+                new ViewingHabits("–", "–", 0, 0, 0),
                 new ViewingHabits("–", "–", 0, 0, 0));
     }
 

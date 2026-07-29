@@ -2,11 +2,11 @@
 .jelana-standalone body{min-height:100%;margin:0;background:#101010}
 .jelana-standalone a{color:#52b8df}
 .jelana-shell{max-width:1200px;margin:0 auto;padding:2rem}
-.jelana-header{display:flex;justify-content:space-between;align-items:end;gap:1rem;margin-bottom:1.5rem}
+.jelana-header{display:flex;flex-direction:column;align-items:flex-start;gap:1rem;margin-bottom:1.5rem}
 .jelana-header h1{font-size:2.4rem;margin:.15rem 0}
 .jelana-brand{display:flex;align-items:center;gap:.85rem}
 .jelana-brand-logo{width:58px;height:58px;object-fit:contain}
-.jelana-header-actions{display:flex;flex-direction:column;align-items:flex-end;gap:.55rem}
+.jelana-header-actions{display:flex;flex-direction:column;align-items:flex-start;gap:.55rem}
 .jelana-header-actions p{margin:0}
 .jelana-home-button{display:flex;align-items:center;gap:.55rem;min-height:44px;box-sizing:border-box;padding:.45rem .75rem;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.06);color:inherit!important;text-decoration:none!important;font-weight:600}
 .jelana-home-button:hover,.jelana-home-button:focus-visible{background:rgba(255,255,255,.11)}
@@ -15,6 +15,8 @@
 .jelana-muted{opacity:.65}
 .jelana-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1rem;margin-bottom:1rem}
 .jelana-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin-bottom:1rem}
+.jelana-overview .jelana-metric .jelana-panel-heading{display:block}
+.jelana-overview .jelana-metric .jelana-tabs{width:max-content;margin-top:.85rem}
 .jelana-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;margin-bottom:1rem}
 .jelana-grid-wide{grid-template-columns:.8fr 1.15fr .9fr}
 .jelana-panel{position:relative;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:1.25rem}

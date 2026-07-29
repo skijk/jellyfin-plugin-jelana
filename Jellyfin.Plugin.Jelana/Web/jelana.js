@@ -1,7 +1,7 @@
 (() => {
     'use strict';
     const STYLE_ID = 'jelana-dashboard-styles';
-    const VERSION = '0.1.14.0';
+    const VERSION = '0.1.15.0';
     const embeddedInJellyfin = typeof window.ApiClient !== 'undefined';
     const basePath = embeddedInJellyfin
         ? ''
@@ -86,12 +86,14 @@
     ensureStyles();
     const page = document.querySelector('#jelanaPage');
     const home = page.querySelector('#jelanaHome');
-    const serverRoot = embeddedInJellyfin
-        ? (typeof ApiClient.serverAddress === 'function' ? ApiClient.serverAddress() : '')
-        : `${location.origin}${basePath}`;
     home.href = embeddedInJellyfin ? '#/home' : `${basePath}/web/#/home`;
-    page.querySelector('#jelanaHomeLogo').src = `${serverRoot}/web/assets/img/icon-transparent.png`;
-    page.querySelector('#jelanaBrandLogo').src = getUrl('Jelana/Logo.png', { version: VERSION });
+    const pluginLogoUrl = getUrl('Jelana/Logo.png', { version: VERSION });
+    const homeLogo = page.querySelector('#jelanaHomeLogo');
+    homeLogo.addEventListener('error', () => {
+        if (homeLogo.src !== pluginLogoUrl) homeLogo.src = pluginLogoUrl;
+    }, { once: true });
+    homeLogo.src = getUrl('Branding/Splashscreen', { version: VERSION });
+    page.querySelector('#jelanaBrandLogo').src = pluginLogoUrl;
     let loadedPersonal = null;
     function setupTabs() {
         page.querySelectorAll('[data-jelana-tabs]').forEach(panel => {

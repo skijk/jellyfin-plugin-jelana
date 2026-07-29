@@ -51,10 +51,13 @@ public sealed class PlaybackReportingReader
             await SummaryAsync(connection, null, cancellationToken).ConfigureAwait(false),
             await TopMoviesAsync(connection, 7, cancellationToken).ConfigureAwait(false),
             await TopMoviesAsync(connection, 30, cancellationToken).ConfigureAwait(false),
+            await TopMoviesAsync(connection, null, cancellationToken).ConfigureAwait(false),
             await TopSeriesAsync(connection, 7, cancellationToken).ConfigureAwait(false),
             await TopSeriesAsync(connection, 30, cancellationToken).ConfigureAwait(false),
+            await TopSeriesAsync(connection, null, cancellationToken).ConfigureAwait(false),
             await TopUsersAsync(connection, 7, cancellationToken).ConfigureAwait(false),
             await TopUsersAsync(connection, 30, cancellationToken).ConfigureAwait(false),
+            await TopUsersAsync(connection, null, cancellationToken).ConfigureAwait(false),
             await PlaybackMethodsAsync(connection, 30, cancellationToken).ConfigureAwait(false),
             await CountsAsync(connection, "COALESCE(NULLIF(ClientName, ''), NULLIF(DeviceName, ''), 'Unknown')", 30, 6, cancellationToken).ConfigureAwait(false),
             await ActivityAsync(connection, 30, cancellationToken).ConfigureAwait(false),
@@ -114,26 +117,32 @@ public sealed class PlaybackReportingReader
         return new PlaybackSummary(row.GetInt32(0), row.GetInt64(1));
     }
 
-    private static async Task<IReadOnlyList<RankingItem>> TopMoviesAsync(SqliteConnection db, int days, CancellationToken token)
+    private static async Task<IReadOnlyList<RankingItem>> TopMoviesAsync(SqliteConnection db, int? days, CancellationToken token)
     {
         await using var command = db.CreateCommand();
-        command.CommandText = SessionCte("WHERE DateCreated >= $since AND ItemType = 'Movie'") + """
+        var where = days.HasValue
+            ? "WHERE DateCreated >= $since AND ItemType = 'Movie'"
+            : "WHERE ItemType = 'Movie'";
+        command.CommandText = SessionCte(where) + """
             SELECT ItemId, ItemName, SUM(NewPlay), SUM(PlayDuration), COUNT(DISTINCT UserId)
             FROM sessions GROUP BY ItemId, ItemName
             ORDER BY SUM(NewPlay) DESC, SUM(PlayDuration) DESC LIMIT 10
             """;
-        command.Parameters.AddWithValue("$since", Since(days));
+        if (days.HasValue) command.Parameters.AddWithValue("$since", Since(days.Value));
         return await ReadRankingsAsync(command, token).ConfigureAwait(false);
     }
 
-    private async Task<IReadOnlyList<RankingItem>> TopSeriesAsync(SqliteConnection db, int days, CancellationToken token)
+    private async Task<IReadOnlyList<RankingItem>> TopSeriesAsync(SqliteConnection db, int? days, CancellationToken token)
     {
         await using var command = db.CreateCommand();
-        command.CommandText = SessionCte("WHERE DateCreated >= $since AND ItemType = 'Episode'") + """
+        var where = days.HasValue
+            ? "WHERE DateCreated >= $since AND ItemType = 'Episode'"
+            : "WHERE ItemType = 'Episode'";
+        command.CommandText = SessionCte(where) + """
             SELECT ItemId, ItemName, UserId, SUM(NewPlay), SUM(PlayDuration)
             FROM sessions GROUP BY ItemId, ItemName, UserId
             """;
-        command.Parameters.AddWithValue("$since", Since(days));
+        if (days.HasValue) command.Parameters.AddWithValue("$since", Since(days.Value));
         var series = new Dictionary<string, (string Id, string Name, int Plays, long Duration, HashSet<string> Users)>();
         await using var rows = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
         while (await rows.ReadAsync(token).ConfigureAwait(false))
@@ -160,16 +169,16 @@ public sealed class PlaybackReportingReader
             .OrderByDescending(x => x.Plays).ThenByDescending(x => x.DurationSeconds).Take(10).ToList();
     }
 
-    private async Task<IReadOnlyList<RankingItem>> TopUsersAsync(SqliteConnection db, int days, CancellationToken token)
+    private async Task<IReadOnlyList<RankingItem>> TopUsersAsync(SqliteConnection db, int? days, CancellationToken token)
     {
         var names = _users.GetUsers().ToDictionary(x => x.Id.ToString("N"), x => x.Username);
         await using var command = db.CreateCommand();
-        command.CommandText = SessionCte("WHERE DateCreated >= $since") + """
+        command.CommandText = SessionCte(days.HasValue ? "WHERE DateCreated >= $since" : string.Empty) + """
             SELECT UserId, SUM(NewPlay), SUM(PlayDuration)
             FROM sessions GROUP BY UserId
             ORDER BY SUM(PlayDuration) DESC, SUM(NewPlay) DESC LIMIT 10
             """;
-        command.Parameters.AddWithValue("$since", Since(days));
+        if (days.HasValue) command.Parameters.AddWithValue("$since", Since(days.Value));
         var result = new List<RankingItem>();
         await using var rows = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
         while (await rows.ReadAsync(token).ConfigureAwait(false))
@@ -522,10 +531,13 @@ public sealed record PlaybackAnalytics(
     PlaybackSummary PlaybackAll,
     IReadOnlyList<RankingItem> TopMovies7,
     IReadOnlyList<RankingItem> TopMovies30,
+    IReadOnlyList<RankingItem> TopMoviesAll,
     IReadOnlyList<RankingItem> TopSeries7,
     IReadOnlyList<RankingItem> TopSeries30,
+    IReadOnlyList<RankingItem> TopSeriesAll,
     IReadOnlyList<RankingItem> TopUsers7,
     IReadOnlyList<RankingItem> TopUsers30,
+    IReadOnlyList<RankingItem> TopUsersAll,
     IReadOnlyList<NameCount> PlaybackMethods,
     IReadOnlyList<NameCount> Clients,
     IReadOnlyList<DailyActivity> Activity,

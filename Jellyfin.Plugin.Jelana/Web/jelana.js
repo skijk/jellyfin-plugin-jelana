@@ -1,7 +1,7 @@
 (() => {
     'use strict';
     const STYLE_ID = 'jelana-dashboard-styles';
-    const VERSION = '0.1.18.0';
+    const VERSION = '0.1.19.0';
     const embeddedInJellyfin = typeof window.ApiClient !== 'undefined';
     const basePath = embeddedInJellyfin
         ? ''
@@ -230,11 +230,24 @@
                 duration(pick(pick(data, 'playback30'), 'durationSeconds'));
             page.querySelector('#jelanaWatchAll').textContent =
                 duration(pick(pick(data, 'playbackAll'), 'durationSeconds'));
-            rankingList('#jelanaMovies', pick(data, 'topMovies30'), row =>
-                `${pick(row, 'plays')} plays · ${pick(row, 'uniqueViewers')} viewers`);
-            rankingList('#jelanaSeries', pick(data, 'topSeries30'), row =>
-                `${pick(row, 'plays')} plays · ${pick(row, 'uniqueViewers')} viewers`);
-            list('#jelanaUsers', pick(data, 'topUsers30'), row => duration(pick(row, 'durationSeconds')));
+            [
+                ['#jelanaMovies7', 'topMovies7'],
+                ['#jelanaMovies30', 'topMovies30'],
+                ['#jelanaMoviesAll', 'topMoviesAll']
+            ].forEach(([selector, property]) => rankingList(selector, pick(data, property), row =>
+                `${pick(row, 'plays')} plays · ${pick(row, 'uniqueViewers')} viewers`));
+            [
+                ['#jelanaSeries7', 'topSeries7'],
+                ['#jelanaSeries30', 'topSeries30'],
+                ['#jelanaSeriesAll', 'topSeriesAll']
+            ].forEach(([selector, property]) => rankingList(selector, pick(data, property), row =>
+                `${pick(row, 'plays')} plays · ${pick(row, 'uniqueViewers')} viewers`));
+            [
+                ['#jelanaUsers7', 'topUsers7'],
+                ['#jelanaUsers30', 'topUsers30'],
+                ['#jelanaUsersAll', 'topUsersAll']
+            ].forEach(([selector, property]) =>
+                list(selector, pick(data, property), row => duration(pick(row, 'durationSeconds'))));
             list('#jelanaClients', pick(data, 'clients'), row => String(pick(row, 'count')));
             list('#jelanaMethods', pick(data, 'playbackMethods'), row => String(pick(row, 'count')));
             const counts = pick(data, 'counts');

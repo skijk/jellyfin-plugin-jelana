@@ -1,7 +1,7 @@
 (() => {
     'use strict';
     const STYLE_ID = 'jelana-dashboard-styles';
-    const VERSION = '0.1.12.0';
+    const VERSION = '0.1.13.0';
     const embeddedInJellyfin = typeof window.ApiClient !== 'undefined';
     const basePath = embeddedInJellyfin
         ? ''
@@ -306,10 +306,13 @@
                 wrapper.tabIndex = 0;
                 const bar = document.createElement('span');
                 bar.className = 'jelana-chart-bar';
-                bar.style.height = `${Math.max(2, Number(pick(row, 'durationSeconds') || 0) / maxDuration * 100)}%`;
+                bar.style.setProperty(
+                    '--jelana-bar-height',
+                    `${Math.max(2, Number(pick(row, 'durationSeconds') || 0) / maxDuration * 100)}%`
+                );
                 const tooltip = document.createElement('span');
                 tooltip.className = 'jelana-chart-tooltip';
-                tooltip.textContent = `${pick(row, 'date')} · ${pick(row, 'plays')} visningar · ${duration(pick(row, 'durationSeconds'))}`;
+                tooltip.textContent = `${pick(row, 'date')} · ${pick(row, 'plays')} plays · ${duration(pick(row, 'durationSeconds'))}`;
                 wrapper.setAttribute('aria-label', tooltip.textContent);
                 const dateLabel = document.createElement('span');
                 dateLabel.className = 'jelana-chart-date';

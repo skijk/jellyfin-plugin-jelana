@@ -78,6 +78,14 @@ public sealed class AnalyticsController : ControllerBase
         return Embedded("Web.jelana-menu.js", "text/javascript; charset=utf-8");
     }
 
+    [HttpGet("Logo.png")]
+    [AllowAnonymous]
+    public IActionResult Logo()
+    {
+        Response.Headers.CacheControl = "public,max-age=86400";
+        return Embedded("Web.jelana-logo.png", "image/png");
+    }
+
     private FileStreamResult Embedded(string suffix, string contentType)
     {
         var name = $"{typeof(Plugin).Namespace}.{suffix}";

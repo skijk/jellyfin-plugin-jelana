@@ -1,7 +1,7 @@
 (() => {
     'use strict';
     const STYLE_ID = 'jelana-dashboard-styles';
-    const VERSION = '0.1.11.0';
+    const VERSION = '0.1.12.0';
     const embeddedInJellyfin = typeof window.ApiClient !== 'undefined';
     const basePath = embeddedInJellyfin
         ? ''
@@ -85,6 +85,13 @@
     }
     ensureStyles();
     const page = document.querySelector('#jelanaPage');
+    const home = page.querySelector('#jelanaHome');
+    const serverRoot = embeddedInJellyfin
+        ? (typeof ApiClient.serverAddress === 'function' ? ApiClient.serverAddress() : '')
+        : `${location.origin}${basePath}`;
+    home.href = embeddedInJellyfin ? '#/home' : `${basePath}/web/#/home`;
+    page.querySelector('#jelanaHomeLogo').src = `${serverRoot}/web/assets/img/icon-transparent.png`;
+    page.querySelector('#jelanaBrandLogo').src = getUrl('Jelana/Logo.png', { version: VERSION });
     let loadedPersonal = null;
     function setupTabs() {
         page.querySelectorAll('[data-jelana-tabs]').forEach(panel => {
@@ -213,23 +220,14 @@
         const loading = page.querySelector('#jelanaLoading');
         try {
             const data = await getSnapshot();
-            const metrics = [
-                ['Plays · 30 days', pick(pick(data, 'playback30'), 'plays')],
-                ['Watch time · 30 days', duration(pick(pick(data, 'playback30'), 'durationSeconds'))],
-                ['Plays · all time', pick(pick(data, 'playbackAll'), 'plays')],
-                ['Watch time · all time', duration(pick(pick(data, 'playbackAll'), 'durationSeconds'))]
-            ];
-            page.querySelector('#jelanaMetrics').replaceChildren(...metrics.map(([label, value]) => {
-                const card = document.createElement('article');
-                card.className = 'jelana-panel jelana-metric';
-                card.dataset.scopeLabel = 'Server-wide';
-                const strong = document.createElement('strong');
-                const span = document.createElement('span');
-                strong.textContent = String(value);
-                span.textContent = label;
-                card.append(strong, span);
-                return card;
-            }));
+            page.querySelector('#jelanaPlays30').textContent =
+                String(pick(pick(data, 'playback30'), 'plays'));
+            page.querySelector('#jelanaPlaysAll').textContent =
+                String(pick(pick(data, 'playbackAll'), 'plays'));
+            page.querySelector('#jelanaWatch30').textContent =
+                duration(pick(pick(data, 'playback30'), 'durationSeconds'));
+            page.querySelector('#jelanaWatchAll').textContent =
+                duration(pick(pick(data, 'playbackAll'), 'durationSeconds'));
             rankingList('#jelanaMovies', pick(data, 'topMovies30'), row =>
                 `${pick(row, 'plays')} plays · ${pick(row, 'uniqueViewers')} viewers`);
             rankingList('#jelanaSeries', pick(data, 'topSeries30'), row =>

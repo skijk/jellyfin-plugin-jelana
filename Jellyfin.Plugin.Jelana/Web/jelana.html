@@ -37,19 +37,56 @@
     <div data-role="content">
         <div class="content-primary jelana-shell">
             <header class="jelana-header">
-                <div><p class="jelana-kicker">JELLYFIN ANALYTICS</p><h1>Analytics</h1></div>
-                <p id="jelanaUpdated" class="jelana-muted"></p>
+                <div class="jelana-brand">
+                    <img id="jelanaBrandLogo" class="jelana-brand-logo" alt="Jelana">
+                    <div><p class="jelana-kicker">JELLYFIN ANALYTICS</p><h1>Analytics</h1></div>
+                </div>
+                <div class="jelana-header-actions">
+                    <a id="jelanaHome" class="jelana-home-button" aria-label="Back to Jellyfin">
+                        <img id="jelanaHomeLogo" alt="">
+                        <span>Back to Jellyfin</span>
+                    </a>
+                    <p id="jelanaUpdated" class="jelana-muted"></p>
+                </div>
             </header>
             <div id="jelanaLoading" class="jelana-panel">Loading the latest hourly snapshot…</div>
             <main id="jelanaContent" hidden>
-                <section id="jelanaMetrics" class="jelana-metrics"></section>
-                <section class="jelana-panel jelana-activity-panel" data-scope-label="Server-wide">
+                <section class="jelana-overview">
+                    <article class="jelana-panel jelana-metric jelana-tab-panel" data-jelana-tabs="plays">
+                        <div class="jelana-panel-heading">
+                            <h2>Plays · Server-wide</h2>
+                            <div class="jelana-tabs" role="tablist" aria-label="Period for plays">
+                                <button type="button" class="is-active" data-tab="plays30">30 days</button>
+                                <button type="button" data-tab="playsAll">All time</button>
+                            </div>
+                        </div>
+                        <div data-tab-content="plays30"><strong id="jelanaPlays30" class="jelana-metric-value">–</strong></div>
+                        <div data-tab-content="playsAll" hidden><strong id="jelanaPlaysAll" class="jelana-metric-value">–</strong></div>
+                    </article>
+                    <article class="jelana-panel jelana-metric jelana-tab-panel" data-jelana-tabs="watchTime">
+                        <div class="jelana-panel-heading">
+                            <h2>Watch time · Server-wide</h2>
+                            <div class="jelana-tabs" role="tablist" aria-label="Period for watch time">
+                                <button type="button" class="is-active" data-tab="watch30">30 days</button>
+                                <button type="button" data-tab="watchAll">All time</button>
+                            </div>
+                        </div>
+                        <div data-tab-content="watch30"><strong id="jelanaWatch30" class="jelana-metric-value">–</strong></div>
+                        <div data-tab-content="watchAll" hidden><strong id="jelanaWatchAll" class="jelana-metric-value">–</strong></div>
+                    </article>
+                    <article class="jelana-panel">
+                        <h2>Monthly trend · Server-wide</h2>
+                        <div id="jelanaMonthlyTrend" class="jelana-trend-facts"></div>
+                        <p class="jelana-muted jelana-caption">Last 30 days compared with the previous 30 days.</p>
+                    </article>
+                </section>
+                <section class="jelana-panel jelana-activity-panel">
                     <h2>Server activity · 30 days</h2>
                     <div id="jelanaActivity" class="jelana-chart"></div>
                 </section>
-                <section id="jelanaPersonalPanel" class="jelana-panel jelana-personal-panel jelana-tab-panel" data-jelana-tabs="personal" data-scope-label="Personal" hidden>
+                <section id="jelanaPersonalPanel" class="jelana-panel jelana-personal-panel jelana-tab-panel" data-jelana-tabs="personal" hidden>
                     <div class="jelana-panel-heading">
-                        <h2>My analytics</h2>
+                        <h2>My analytics · Personal</h2>
                         <div class="jelana-tabs" role="tablist" aria-label="Period for my analytics">
                             <button type="button" class="is-active" data-tab="personal30">30 days</button>
                             <button type="button" data-tab="personal365">1 year</button>
@@ -76,13 +113,13 @@
                     </div>
                 </section>
                 <section class="jelana-grid">
-                    <article class="jelana-panel" data-scope-label="Server-wide">
-                        <h2>Library</h2>
+                    <article class="jelana-panel">
+                        <h2>Library · Server-wide</h2>
                         <div id="jelanaLibrary" class="jelana-facts"></div>
                     </article>
-                    <article class="jelana-panel jelana-tab-panel" data-jelana-tabs="new" data-scope-label="Server-wide">
+                    <article class="jelana-panel jelana-tab-panel" data-jelana-tabs="new">
                         <div class="jelana-panel-heading">
-                            <h2>New in the library</h2>
+                            <h2>New in the library · Server-wide</h2>
                             <div class="jelana-tabs" role="tablist" aria-label="Period for new content">
                                 <button type="button" class="is-active" data-tab="7">7 days</button>
                                 <button type="button" data-tab="30">30 days</button>
@@ -91,27 +128,22 @@
                         <div id="jelanaNew7" class="jelana-facts" data-tab-content="7"></div>
                         <div id="jelanaNew30" class="jelana-facts" data-tab-content="30" hidden></div>
                     </article>
-                    <article class="jelana-panel" data-scope-label="Server-wide">
-                        <h2>Monthly trend</h2>
-                        <div id="jelanaMonthlyTrend" class="jelana-trend-facts"></div>
-                        <p class="jelana-muted jelana-caption">Last 30 days compared with the previous 30 days.</p>
-                    </article>
                 </section>
                 <section class="jelana-grid">
-                    <article class="jelana-panel" data-scope-label="Server-wide"><h2>Most played movies</h2><ol id="jelanaMovies"></ol></article>
-                    <article class="jelana-panel" data-scope-label="Server-wide"><h2>Most played series</h2><ol id="jelanaSeries"></ol></article>
-                    <article class="jelana-panel" data-scope-label="Server-wide"><h2>Most active users</h2><ol id="jelanaUsers"></ol></article>
+                    <article class="jelana-panel"><h2>Most played movies · Server-wide</h2><ol id="jelanaMovies"></ol></article>
+                    <article class="jelana-panel"><h2>Most played series · Server-wide</h2><ol id="jelanaSeries"></ol></article>
+                    <article class="jelana-panel"><h2>Most active users · Server-wide</h2><ol id="jelanaUsers"></ol></article>
                 </section>
-                <section class="jelana-panel jelana-trending-panel" data-scope-label="Server-wide">
-                    <h2>Hot right now</h2>
+                <section class="jelana-panel jelana-trending-panel">
+                    <h2>Hot right now · Server-wide</h2>
                     <p class="jelana-muted jelana-caption">Last 7 days compared with the previous 7 days.</p>
                     <ol id="jelanaTrending"></ol>
                 </section>
                 <section class="jelana-grid">
-                    <article class="jelana-panel jelana-tab-panel" data-jelana-tabs="profile" data-scope-label="Server-wide">
+                    <article class="jelana-panel jelana-tab-panel" data-jelana-tabs="profile">
                         <div class="jelana-panel-heading">
-                            <h2>Medieprofil</h2>
-                            <div class="jelana-tabs" role="tablist" aria-label="Medieprofil">
+                            <h2>Media profile · Server-wide</h2>
+                            <div class="jelana-tabs" role="tablist" aria-label="Media profile">
                                 <button type="button" class="is-active" data-tab="video">Video</button>
                                 <button type="button" data-tab="resolution">Resolution</button>
                                 <button type="button" data-tab="audio">Audio</button>
@@ -121,9 +153,9 @@
                         <div data-tab-content="resolution" hidden><ol id="jelanaResolution"></ol></div>
                         <div data-tab-content="audio" hidden><ol id="jelanaAudio"></ol></div>
                     </article>
-                    <article class="jelana-panel jelana-tab-panel" data-jelana-tabs="playback" data-scope-label="Server-wide">
+                    <article class="jelana-panel jelana-tab-panel" data-jelana-tabs="playback">
                         <div class="jelana-panel-heading">
-                            <h2>Playback</h2>
+                            <h2>Playback · Server-wide</h2>
                             <div class="jelana-tabs" role="tablist" aria-label="Playback analytics">
                                 <button type="button" class="is-active" data-tab="clients">Clients</button>
                                 <button type="button" data-tab="methods">Methods</button>
@@ -136,7 +168,7 @@
             </main>
         </div>
     </div>
-    <script src="/Jelana/Client.js?v=0.1.11.0"></script>
+    <script src="/Jelana/Client.js?v=0.1.12.0"></script>
 </div>
 </body>
 </html>

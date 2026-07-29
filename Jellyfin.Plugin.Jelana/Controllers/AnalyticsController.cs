@@ -70,6 +70,14 @@ public sealed class AnalyticsController : ControllerBase
         return Embedded("Web.jelana.js", "text/javascript; charset=utf-8");
     }
 
+    [HttpGet("Menu.js")]
+    [AllowAnonymous]
+    public IActionResult MenuJs()
+    {
+        Response.Headers.CacheControl = "no-cache";
+        return Embedded("Web.jelana-menu.js", "text/javascript; charset=utf-8");
+    }
+
     private FileStreamResult Embedded(string suffix, string contentType)
     {
         var name = $"{typeof(Plugin).Namespace}.{suffix}";

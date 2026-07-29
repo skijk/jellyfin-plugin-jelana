@@ -1,7 +1,7 @@
 (() => {
     'use strict';
     const STYLE_ID = 'jelana-dashboard-styles';
-    const VERSION = '0.1.8.0';
+    const VERSION = '0.1.9.0';
     const embeddedInJellyfin = typeof window.ApiClient !== 'undefined';
     const basePath = embeddedInJellyfin
         ? ''
@@ -173,6 +173,13 @@
     };
     const dictionaryRows = value =>
         Object.entries(value || {}).map(([name, count]) => ({ name, count }));
+    const percentChange = (current, previous) => {
+        current = Number(current || 0);
+        previous = Number(previous || 0);
+        if (previous === 0) return current === 0 ? 0 : 100;
+        return Math.round((current - previous) * 100 / previous);
+    };
+    const signedPercent = value => `${value > 0 ? '+' : ''}${value}%`;
     const personalFacts = (id, period) => facts(id, [
         ['Filmvisningar', pick(period, 'movies')],
         ['Avsnittsvisningar', pick(period, 'episodes')],
@@ -198,8 +205,10 @@
                 card.append(strong, span);
                 return card;
             }));
-            rankingList('#jelanaMovies', pick(data, 'topMovies30'), row => `${pick(row, 'plays')} visningar`);
-            rankingList('#jelanaSeries', pick(data, 'topSeries30'), row => `${pick(row, 'plays')} visningar`);
+            rankingList('#jelanaMovies', pick(data, 'topMovies30'), row =>
+                `${pick(row, 'plays')} visningar · ${pick(row, 'uniqueViewers')} tittare`);
+            rankingList('#jelanaSeries', pick(data, 'topSeries30'), row =>
+                `${pick(row, 'plays')} visningar · ${pick(row, 'uniqueViewers')} tittare`);
             list('#jelanaUsers', pick(data, 'topUsers30'), row => duration(pick(row, 'durationSeconds')));
             list('#jelanaClients', pick(data, 'clients'), row => String(pick(row, 'count')));
             list('#jelanaMethods', pick(data, 'playbackMethods'), row => String(pick(row, 'count')));
@@ -224,6 +233,48 @@
             list('#jelanaVideo', dictionaryRows(pick(profile, 'video')), row => String(row.count));
             list('#jelanaResolution', dictionaryRows(pick(profile, 'resolution')), row => String(row.count));
             list('#jelanaAudio', dictionaryRows(pick(profile, 'audio')), row => String(row.count));
+            const monthly = pick(data, 'monthlyTrend');
+            const monthlyCurrent = pick(monthly, 'current');
+            const monthlyPrevious = pick(monthly, 'previous');
+            const playsChange = percentChange(pick(monthlyCurrent, 'plays'), pick(monthlyPrevious, 'plays'));
+            const durationChange = percentChange(
+                pick(monthlyCurrent, 'durationSeconds'),
+                pick(monthlyPrevious, 'durationSeconds'));
+            const monthlyTarget = page.querySelector('#jelanaMonthlyTrend');
+            monthlyTarget.replaceChildren(...[
+                ['Visningar', pick(monthlyCurrent, 'plays'), playsChange],
+                ['Tittartid', duration(pick(monthlyCurrent, 'durationSeconds')), durationChange]
+            ].map(([label, value, change]) => {
+                const box = document.createElement('div');
+                const span = document.createElement('span');
+                const strong = document.createElement('strong');
+                const delta = document.createElement('small');
+                span.textContent = label;
+                strong.textContent = String(value);
+                delta.textContent = signedPercent(change);
+                delta.className = change >= 0 ? 'jelana-trend-positive' : 'jelana-trend-negative';
+                box.append(span, strong, delta);
+                return box;
+            }));
+            page.querySelector('#jelanaTrending').replaceChildren(...(pick(data, 'trending') || []).map((row, index) => {
+                const item = document.createElement('li');
+                const link = document.createElement('a');
+                link.className = 'jelana-ranking-link';
+                link.href = detailUrl(pick(row, 'id'));
+                link.textContent = `${index + 1}. ${pick(row, 'name')}`;
+                const meta = document.createElement('span');
+                meta.className = 'jelana-trending-meta';
+                const type = document.createElement('small');
+                type.className = 'jelana-trending-type';
+                type.textContent = pick(row, 'type');
+                const current = Number(pick(row, 'currentPlays') || 0);
+                const previous = Number(pick(row, 'previousPlays') || 0);
+                const value = document.createElement('strong');
+                value.textContent = `${current} · ${current - previous >= 0 ? '+' : ''}${current - previous} · ${pick(row, 'uniqueViewers')} tittare`;
+                meta.append(type, value);
+                item.append(link, meta);
+                return item;
+            }));
             const activity = pick(data, 'activity') || [];
             const maxDuration = Math.max(1, ...activity.map(row => Number(pick(row, 'durationSeconds') || 0)));
             page.querySelector('#jelanaActivity').replaceChildren(...activity.map((row, index) => {
@@ -262,6 +313,16 @@
                 personalFacts('#jelanaPersonal30', pick(personal, 'last30Days'));
                 personalFacts('#jelanaPersonal365', pick(personal, 'lastYear'));
                 personalFacts('#jelanaPersonalAll', pick(personal, 'allTime'));
+                const habits = pick(personal, 'habits');
+                page.querySelector('#jelanaFavoriteDay').textContent = pick(habits, 'favoriteWeekday');
+                page.querySelector('#jelanaFavoriteTime').textContent = pick(habits, 'favoriteTimeOfDay');
+                page.querySelector('#jelanaLongestSession').textContent =
+                    duration(pick(habits, 'longestSessionSeconds'));
+                const moviePercent = Number(pick(habits, 'moviePercent') || 0);
+                const episodePercent = Number(pick(habits, 'episodePercent') || 0);
+                page.querySelector('#jelanaMoviePercent').textContent = `${moviePercent}%`;
+                page.querySelector('#jelanaEpisodePercent').textContent = `${episodePercent}%`;
+                page.querySelector('#jelanaMediaDonut').style.setProperty('--movie-share', `${moviePercent}%`);
                 page.querySelector('#jelanaPersonalPanel').hidden = false;
             } catch {
                 page.querySelector('#jelanaPersonalPanel').hidden = true;

@@ -59,6 +59,21 @@
                     <div id="jelanaPersonal30" class="jelana-personal-facts" data-tab-content="personal30"></div>
                     <div id="jelanaPersonal365" class="jelana-personal-facts" data-tab-content="personal365" hidden></div>
                     <div id="jelanaPersonalAll" class="jelana-personal-facts" data-tab-content="personalAll" hidden></div>
+                    <div class="jelana-habits">
+                        <div class="jelana-facts">
+                            <div><span>Vanligaste dagen</span><strong id="jelanaFavoriteDay">–</strong></div>
+                            <div><span>Vanligaste tiden</span><strong id="jelanaFavoriteTime">–</strong></div>
+                            <div><span>Längsta sessionen</span><strong id="jelanaLongestSession">–</strong></div>
+                        </div>
+                        <div class="jelana-media-split">
+                            <div id="jelanaMediaDonut" class="jelana-donut" aria-hidden="true"></div>
+                            <div>
+                                <strong>Film <span id="jelanaMoviePercent">0%</span></strong>
+                                <strong>Serier <span id="jelanaEpisodePercent">0%</span></strong>
+                                <small>Fördelning senaste året</small>
+                            </div>
+                        </div>
+                    </div>
                 </section>
                 <section class="jelana-grid">
                     <article class="jelana-panel">
@@ -76,11 +91,21 @@
                         <div id="jelanaNew7" class="jelana-facts" data-tab-content="7"></div>
                         <div id="jelanaNew30" class="jelana-facts" data-tab-content="30" hidden></div>
                     </article>
+                    <article class="jelana-panel">
+                        <h2>Månadstrend</h2>
+                        <div id="jelanaMonthlyTrend" class="jelana-trend-facts"></div>
+                        <p class="jelana-muted jelana-caption">Senaste 30 dagarna jämfört med föregående 30 dagar.</p>
+                    </article>
                 </section>
                 <section class="jelana-grid">
                     <article class="jelana-panel"><h2>Mest spelade filmer</h2><ol id="jelanaMovies"></ol></article>
                     <article class="jelana-panel"><h2>Mest spelade serier</h2><ol id="jelanaSeries"></ol></article>
                     <article class="jelana-panel"><h2>Mest aktiva användare</h2><ol id="jelanaUsers"></ol></article>
+                </section>
+                <section class="jelana-panel jelana-trending-panel">
+                    <h2>Hetast just nu</h2>
+                    <p class="jelana-muted jelana-caption">Senaste 7 dagarna jämfört med föregående 7 dagar.</p>
+                    <ol id="jelanaTrending"></ol>
                 </section>
                 <section class="jelana-grid">
                     <article class="jelana-panel jelana-tab-panel" data-jelana-tabs="profile">
@@ -111,7 +136,7 @@
             </main>
         </div>
     </div>
-    <script src="/Jelana/Client.js?v=0.1.8.0"></script>
+    <script src="/Jelana/Client.js?v=0.1.9.0"></script>
 </div>
 </body>
 </html>

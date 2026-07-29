@@ -38,7 +38,8 @@ public sealed class SnapshotStore
             ?? new PersonalAnalytics(
                 new PersonalPeriod(0, 0, 0),
                 new PersonalPeriod(0, 0, 0),
-                new PersonalPeriod(0, 0, 0));
+                new PersonalPeriod(0, 0, 0),
+                new ViewingHabits("–", "–", 0, 0, 0));
     }
 
     public async Task<AnalyticsSnapshot> RefreshAsync(CancellationToken cancellationToken)
@@ -64,6 +65,8 @@ public sealed class SnapshotStore
                 playback.PlaybackMethods,
                 playback.Clients,
                 playback.Activity,
+                playback.MonthlyTrend,
+                playback.Trending,
                 library.Recent,
                 library.MediaProfile);
 

@@ -41,3 +41,21 @@ dotnet build Jellyfin.Plugin.Jelana.sln --configuration Release
 
 Install the resulting DLL in a `Jelana` directory below Jellyfin's plugin
 directory, then restart Jellyfin.
+
+## Menu link for regular users
+
+Jellyfin does not expose server plugin pages in the regular user menu. With JS
+Injector, Jelana can add **Statistik** for every signed-in user. Add this loader
+to JS Injector:
+
+```js
+if (!document.getElementById('jelana-menu-loader')) {
+    const script = document.createElement('script');
+    script.id = 'jelana-menu-loader';
+    script.src = ApiClient.getUrl('Jelana/Menu.js', { version: '0.1.9.0' });
+    document.head.appendChild(script);
+}
+```
+
+The link opens the authenticated user page at `/Jelana/User`. Menu behavior and
+future compatibility fixes remain bundled in Jelana itself.

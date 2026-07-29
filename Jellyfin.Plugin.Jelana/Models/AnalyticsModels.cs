@@ -17,10 +17,25 @@ public sealed record NameCount(string Name, int Count);
 public sealed record DailyActivity(DateOnly Date, int Plays, long DurationSeconds);
 public sealed record PlaybackSummary(int Plays, long DurationSeconds);
 public sealed record PersonalPeriod(int Movies, int Episodes, long DurationSeconds);
+public sealed record ViewingHabits(
+    string FavoriteWeekday,
+    string FavoriteTimeOfDay,
+    long LongestSessionSeconds,
+    int MoviePercent,
+    int EpisodePercent);
 public sealed record PersonalAnalytics(
     PersonalPeriod Last30Days,
     PersonalPeriod LastYear,
-    PersonalPeriod AllTime);
+    PersonalPeriod AllTime,
+    ViewingHabits Habits);
+public sealed record MonthlyTrend(PlaybackSummary Current, PlaybackSummary Previous);
+public sealed record TrendingItem(
+    string Id,
+    string Name,
+    string Type,
+    int CurrentPlays,
+    int PreviousPlays,
+    int UniqueViewers);
 public sealed record LibraryCounts(int Movies, int Series, int Episodes, int Users);
 public sealed record NewItemCounts(int Movies7, int Movies30, int Series7, int Series30);
 public sealed record StorageBreakdown(IReadOnlyDictionary<string, long?> Libraries, long? Total);
@@ -46,5 +61,7 @@ public sealed record AnalyticsSnapshot(
     IReadOnlyList<NameCount> PlaybackMethods,
     IReadOnlyList<NameCount> Clients,
     IReadOnlyList<DailyActivity> Activity,
+    MonthlyTrend MonthlyTrend,
+    IReadOnlyList<TrendingItem> Trending,
     IReadOnlyList<RecentItem> Recent,
     MediaProfile MediaProfile);

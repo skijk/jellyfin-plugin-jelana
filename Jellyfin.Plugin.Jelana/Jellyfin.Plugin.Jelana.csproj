@@ -16,5 +16,6 @@
     <EmbeddedResource Include="Web\jelana.html" />
     <EmbeddedResource Include="Web\jelana.css" />
     <EmbeddedResource Include="Web\jelana.js" />
+    <EmbeddedResource Include="Web\jelana-menu.js" />
   </ItemGroup>
 </Project>

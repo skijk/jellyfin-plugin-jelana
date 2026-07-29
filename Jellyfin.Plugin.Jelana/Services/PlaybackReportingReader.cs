@@ -58,6 +58,10 @@ public sealed class PlaybackReportingReader
             await PlaybackMethodsAsync(connection, 30, cancellationToken).ConfigureAwait(false),
             await CountsAsync(connection, "COALESCE(NULLIF(ClientName, ''), NULLIF(DeviceName, ''), 'Unknown')", 30, 6, cancellationToken).ConfigureAwait(false),
             await ActivityAsync(connection, 30, cancellationToken).ConfigureAwait(false),
+            new MonthlyTrend(
+                await SummaryAsync(connection, 30, cancellationToken).ConfigureAwait(false),
+                await SummaryRangeAsync(connection, 60, 30, cancellationToken).ConfigureAwait(false)),
+            await TrendingAsync(connection, cancellationToken).ConfigureAwait(false),
             await PersonalAnalyticsAsync(connection, cancellationToken).ConfigureAwait(false));
     }
 
@@ -89,6 +93,22 @@ public sealed class PlaybackReportingReader
         command.CommandText = SessionCte(days.HasValue ? "WHERE DateCreated >= $since" : "") +
             " SELECT COALESCE(SUM(NewPlay),0), COALESCE(SUM(PlayDuration),0) FROM sessions";
         if (days.HasValue) command.Parameters.AddWithValue("$since", Since(days.Value));
+        await using var row = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
+        await row.ReadAsync(token).ConfigureAwait(false);
+        return new PlaybackSummary(row.GetInt32(0), row.GetInt64(1));
+    }
+
+    private static async Task<PlaybackSummary> SummaryRangeAsync(
+        SqliteConnection db,
+        int fromDays,
+        int toDays,
+        CancellationToken token)
+    {
+        await using var command = db.CreateCommand();
+        command.CommandText = SessionCte("WHERE DateCreated >= $from AND DateCreated < $to") +
+            " SELECT COALESCE(SUM(NewPlay),0), COALESCE(SUM(PlayDuration),0) FROM sessions";
+        command.Parameters.AddWithValue("$from", Since(fromDays));
+        command.Parameters.AddWithValue("$to", Since(toDays));
         await using var row = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
         await row.ReadAsync(token).ConfigureAwait(false);
         return new PlaybackSummary(row.GetInt32(0), row.GetInt64(1));
@@ -263,10 +283,174 @@ public sealed class PlaybackReportingReader
             result[rows.GetString(0)] = new PersonalAnalytics(
                 new PersonalPeriod(rows.GetInt32(1), rows.GetInt32(2), rows.GetInt64(3)),
                 new PersonalPeriod(rows.GetInt32(4), rows.GetInt32(5), rows.GetInt64(6)),
-                new PersonalPeriod(rows.GetInt32(7), rows.GetInt32(8), rows.GetInt64(9)));
+                new PersonalPeriod(rows.GetInt32(7), rows.GetInt32(8), rows.GetInt64(9)),
+                new ViewingHabits("–", "–", 0, 0, 0));
         }
 
+        await AddPersonalHabitsAsync(db, result, token).ConfigureAwait(false);
         return result;
+    }
+
+    private static async Task AddPersonalHabitsAsync(
+        SqliteConnection db,
+        Dictionary<string, PersonalAnalytics> result,
+        CancellationToken token)
+    {
+        var weekdays = new Dictionary<string, (string Name, int Count)>();
+        await using (var command = db.CreateCommand())
+        {
+            command.CommandText = SessionCte("WHERE DateCreated >= $since") + """
+                SELECT REPLACE(LOWER(UserId), '-', ''), strftime('%w', DateCreated), SUM(NewPlay)
+                FROM sessions
+                GROUP BY REPLACE(LOWER(UserId), '-', ''), strftime('%w', DateCreated)
+                ORDER BY 3 DESC
+                """;
+            command.Parameters.AddWithValue("$since", Since(365));
+            await using var rows = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
+            var names = new[] { "söndag", "måndag", "tisdag", "onsdag", "torsdag", "fredag", "lördag" };
+            while (await rows.ReadAsync(token).ConfigureAwait(false))
+            {
+                var id = rows.GetString(0);
+                var count = rows.GetInt32(2);
+                if (!weekdays.TryGetValue(id, out var current) || count > current.Count)
+                {
+                    weekdays[id] = (names[int.Parse(rows.GetString(1), CultureInfo.InvariantCulture)], count);
+                }
+            }
+        }
+
+        var times = new Dictionary<string, (string Name, int Count)>();
+        await using (var command = db.CreateCommand())
+        {
+            command.CommandText = SessionCte("WHERE DateCreated >= $since") + """
+                SELECT REPLACE(LOWER(UserId), '-', ''),
+                       CASE
+                           WHEN CAST(strftime('%H', DateCreated) AS INTEGER) < 6 THEN 'Natt · 00–06'
+                           WHEN CAST(strftime('%H', DateCreated) AS INTEGER) < 12 THEN 'Morgon · 06–12'
+                           WHEN CAST(strftime('%H', DateCreated) AS INTEGER) < 18 THEN 'Eftermiddag · 12–18'
+                           ELSE 'Kväll · 18–24'
+                       END,
+                       SUM(NewPlay)
+                FROM sessions
+                GROUP BY REPLACE(LOWER(UserId), '-', ''), 2
+                ORDER BY 3 DESC
+                """;
+            command.Parameters.AddWithValue("$since", Since(365));
+            await using var rows = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
+            while (await rows.ReadAsync(token).ConfigureAwait(false))
+            {
+                var id = rows.GetString(0);
+                var count = rows.GetInt32(2);
+                if (!times.TryGetValue(id, out var current) || count > current.Count)
+                {
+                    times[id] = (rows.GetString(1), count);
+                }
+            }
+        }
+
+        var longest = new Dictionary<string, long>();
+        await using (var command = db.CreateCommand())
+        {
+            command.CommandText = $$"""
+                WITH ordered AS (
+                    SELECT DateCreated, UserId, COALESCE(PlayDuration, 0) AS PlayDuration,
+                           LAG(DateCreated) OVER (PARTITION BY UserId ORDER BY DateCreated) AS PreviousDate
+                    FROM PlaybackActivity
+                ),
+                numbered AS (
+                    SELECT *,
+                           SUM(CASE WHEN PreviousDate IS NULL
+                                    OR (julianday(DateCreated) - julianday(PreviousDate)) * 86400 > {{SessionGapSeconds}}
+                                    THEN 1 ELSE 0 END)
+                           OVER (PARTITION BY UserId ORDER BY DateCreated) AS SessionNumber
+                    FROM ordered
+                ),
+                totals AS (
+                    SELECT REPLACE(LOWER(UserId), '-', '') AS NormalizedUserId,
+                           SessionNumber,
+                           SUM(PlayDuration) AS Duration
+                    FROM numbered
+                    GROUP BY NormalizedUserId, SessionNumber
+                )
+                SELECT NormalizedUserId, MAX(Duration) FROM totals GROUP BY NormalizedUserId
+                """;
+            await using var rows = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
+            while (await rows.ReadAsync(token).ConfigureAwait(false))
+            {
+                longest[rows.GetString(0)] = rows.GetInt64(1);
+            }
+        }
+
+        foreach (var (id, analytics) in result.ToList())
+        {
+            var total = analytics.LastYear.Movies + analytics.LastYear.Episodes;
+            var moviePercent = total == 0 ? 0 : (int)Math.Round(analytics.LastYear.Movies * 100d / total);
+            result[id] = analytics with
+            {
+                Habits = new ViewingHabits(
+                    weekdays.GetValueOrDefault(id).Name ?? "–",
+                    times.GetValueOrDefault(id).Name ?? "–",
+                    longest.GetValueOrDefault(id),
+                    moviePercent,
+                    total == 0 ? 0 : 100 - moviePercent)
+            };
+        }
+    }
+
+    private async Task<IReadOnlyList<TrendingItem>> TrendingAsync(
+        SqliteConnection db,
+        CancellationToken token)
+    {
+        await using var command = db.CreateCommand();
+        command.CommandText = SessionCte("WHERE DateCreated >= $since14 AND ItemType IN ('Movie', 'Episode')") + """
+            SELECT ItemId, ItemName, ItemType, UserId,
+                   SUM(CASE WHEN DateCreated >= $since7 THEN NewPlay ELSE 0 END),
+                   SUM(CASE WHEN DateCreated < $since7 THEN NewPlay ELSE 0 END)
+            FROM sessions
+            GROUP BY ItemId, ItemName, ItemType, UserId
+            """;
+        command.Parameters.AddWithValue("$since14", Since(14));
+        command.Parameters.AddWithValue("$since7", Since(7));
+        var items = new Dictionary<string, (string Id, string Name, string Type, int Current, int Previous, HashSet<string> Users)>();
+        await using var rows = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
+        while (await rows.ReadAsync(token).ConfigureAwait(false))
+        {
+            var itemId = rows.GetString(0);
+            var itemName = rows.GetString(1);
+            var type = rows.GetString(2);
+            var current = rows.GetInt32(4);
+            var previous = rows.GetInt32(5);
+            if (type == "Episode")
+            {
+                var episode = Guid.TryParse(itemId, out var id) ? _library.GetItemById(id) as Episode : null;
+                itemId = episode?.Series?.Id.ToString("N") ?? string.Empty;
+                itemName = episode?.Series?.Name ?? FallbackSeriesName(itemName);
+                type = "Serie";
+            }
+            else
+            {
+                type = "Film";
+            }
+
+            var key = itemId.Length > 0 ? $"{type}:{itemId}" : $"{type}:{itemName.ToLowerInvariant()}";
+            if (!items.TryGetValue(key, out var aggregate))
+            {
+                aggregate = (itemId, itemName, type, 0, 0, new HashSet<string>());
+            }
+
+            aggregate.Current += current;
+            aggregate.Previous += previous;
+            if (current > 0) aggregate.Users.Add(rows.GetString(3));
+            items[key] = aggregate;
+        }
+
+        return items.Values
+            .Where(x => x.Current > 0)
+            .OrderByDescending(x => x.Current - x.Previous)
+            .ThenByDescending(x => x.Current)
+            .Take(8)
+            .Select(x => new TrendingItem(x.Id, x.Name, x.Type, x.Current, x.Previous, x.Users.Count))
+            .ToList();
     }
 
     private static async Task<IReadOnlyList<RankingItem>> ReadRankingsAsync(SqliteCommand command, CancellationToken token)
@@ -310,4 +494,6 @@ public sealed record PlaybackAnalytics(
     IReadOnlyList<NameCount> PlaybackMethods,
     IReadOnlyList<NameCount> Clients,
     IReadOnlyList<DailyActivity> Activity,
+    MonthlyTrend MonthlyTrend,
+    IReadOnlyList<TrendingItem> Trending,
     IReadOnlyDictionary<string, PersonalAnalytics> Personal);

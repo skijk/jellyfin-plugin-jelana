@@ -1,7 +1,7 @@
 (() => {
     'use strict';
     const STYLE_ID = 'jelana-dashboard-styles';
-    const VERSION = '0.1.17.0';
+    const VERSION = '0.1.18.0';
     const embeddedInJellyfin = typeof window.ApiClient !== 'undefined';
     const basePath = embeddedInJellyfin
         ? ''
@@ -294,8 +294,16 @@
                 type.textContent = pick(row, 'type');
                 const current = Number(pick(row, 'currentPlays') || 0);
                 const previous = Number(pick(row, 'previousPlays') || 0);
+                const difference = current - previous;
+                const comparison = difference > 0
+                    ? `↑ ${difference} vs last week`
+                    : difference < 0
+                        ? `↓ ${Math.abs(difference)} vs last week`
+                        : 'no change vs last week';
+                const viewers = Number(pick(row, 'uniqueViewers') || 0);
                 const value = document.createElement('strong');
-                value.textContent = `${current} · ${current - previous >= 0 ? '+' : ''}${current - previous} · ${pick(row, 'uniqueViewers')} viewers`;
+                value.textContent =
+                    `${current} ${current === 1 ? 'play' : 'plays'} · ${comparison} · ${viewers} ${viewers === 1 ? 'viewer' : 'viewers'}`;
                 meta.append(type, value);
                 item.append(link, meta);
                 return item;

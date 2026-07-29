@@ -44,18 +44,34 @@
             <main id="jelanaContent" hidden>
                 <section id="jelanaMetrics" class="jelana-metrics"></section>
                 <section class="jelana-grid jelana-grid-wide">
-                    <article class="jelana-panel jelana-library-panel">
-                        <h2>Bibliotek och medieprofil</h2>
-                        <div class="jelana-library-profile">
-                            <div id="jelanaLibrary" class="jelana-facts"></div>
-                            <div class="jelana-profile">
-                                <section><h3>Video</h3><ol id="jelanaVideo"></ol></section>
-                                <section><h3>Upplösning</h3><ol id="jelanaResolution"></ol></section>
-                                <section><h3>Ljud</h3><ol id="jelanaAudio"></ol></section>
+                    <article class="jelana-panel">
+                        <h2>Bibliotek</h2>
+                        <div id="jelanaLibrary" class="jelana-facts"></div>
+                    </article>
+                    <article class="jelana-panel jelana-tab-panel" data-jelana-tabs="profile">
+                        <div class="jelana-panel-heading">
+                            <h2>Medieprofil</h2>
+                            <div class="jelana-tabs" role="tablist" aria-label="Medieprofil">
+                                <button type="button" class="is-active" data-tab="video">Video</button>
+                                <button type="button" data-tab="resolution">Upplösning</button>
+                                <button type="button" data-tab="audio">Ljud</button>
                             </div>
                         </div>
+                        <div data-tab-content="video"><ol id="jelanaVideo"></ol></div>
+                        <div data-tab-content="resolution" hidden><ol id="jelanaResolution"></ol></div>
+                        <div data-tab-content="audio" hidden><ol id="jelanaAudio"></ol></div>
                     </article>
-                    <article class="jelana-panel"><h2>Nytt i biblioteket</h2><div id="jelanaNew" class="jelana-facts"></div></article>
+                    <article class="jelana-panel jelana-tab-panel" data-jelana-tabs="new">
+                        <div class="jelana-panel-heading">
+                            <h2>Nytt i biblioteket</h2>
+                            <div class="jelana-tabs" role="tablist" aria-label="Period för nytt innehåll">
+                                <button type="button" class="is-active" data-tab="7">7 dagar</button>
+                                <button type="button" data-tab="30">30 dagar</button>
+                            </div>
+                        </div>
+                        <div id="jelanaNew7" class="jelana-facts" data-tab-content="7"></div>
+                        <div id="jelanaNew30" class="jelana-facts" data-tab-content="30" hidden></div>
+                    </article>
                     <article class="jelana-panel jelana-activity-panel"><h2>Aktivitet · 30 dagar</h2><div id="jelanaActivity" class="jelana-chart"></div></article>
                 </section>
                 <section class="jelana-grid">
@@ -69,7 +85,7 @@
             </main>
         </div>
     </div>
-    <script src="/Jelana/Client.js?v=0.1.4.0"></script>
+    <script src="/Jelana/Client.js?v=0.1.5.0"></script>
 </div>
 </body>
 </html>

@@ -1,7 +1,7 @@
 (() => {
     'use strict';
     const STYLE_ID = 'jelana-dashboard-styles';
-    const VERSION = '0.1.4.0';
+    const VERSION = '0.1.5.0';
     function ensureStyles() {
         let stylesheet = document.getElementById(STYLE_ID);
         if (stylesheet) {
@@ -18,6 +18,28 @@
     }
     ensureStyles();
     const page = document.querySelector('#jelanaPage');
+    function setupTabs() {
+        page.querySelectorAll('[data-jelana-tabs]').forEach(panel => {
+            const buttons = panel.querySelectorAll('[data-tab]');
+            const contents = panel.querySelectorAll('[data-tab-content]');
+            buttons.forEach(button => {
+                button.setAttribute('role', 'tab');
+                button.setAttribute('aria-selected', String(button.classList.contains('is-active')));
+                button.addEventListener('click', () => {
+                    const selected = button.dataset.tab;
+                    buttons.forEach(candidate => {
+                        const active = candidate === button;
+                        candidate.classList.toggle('is-active', active);
+                        candidate.setAttribute('aria-selected', String(active));
+                    });
+                    contents.forEach(content => {
+                        content.hidden = content.dataset.tabContent !== selected;
+                    });
+                });
+            });
+        });
+    }
+    setupTabs();
     const pick = (value, name) => value?.[name] ?? value?.[name[0].toUpperCase() + name.slice(1)];
     const duration = seconds => {
         const hours = Math.floor(Number(seconds || 0) / 3600);
@@ -118,11 +140,13 @@
                 ['Lagring', bytes(pick(pick(data, 'storage'), 'total'))]
             ]);
             const added = pick(data, 'newItems');
-            facts('#jelanaNew', [
-                ['Filmer · 7 dagar', pick(added, 'movies7')],
-                ['Filmer · 30 dagar', pick(added, 'movies30')],
-                ['Serier · 7 dagar', pick(added, 'series7')],
-                ['Serier · 30 dagar', pick(added, 'series30')]
+            facts('#jelanaNew7', [
+                ['Filmer', pick(added, 'movies7')],
+                ['Serier', pick(added, 'series7')]
+            ]);
+            facts('#jelanaNew30', [
+                ['Filmer', pick(added, 'movies30')],
+                ['Serier', pick(added, 'series30')]
             ]);
             const profile = pick(data, 'mediaProfile');
             list('#jelanaVideo', dictionaryRows(pick(profile, 'video')), row => String(row.count));
@@ -133,12 +157,14 @@
             page.querySelector('#jelanaActivity').replaceChildren(...activity.map(row => {
                 const wrapper = document.createElement('span');
                 wrapper.className = 'jelana-chart-column';
+                wrapper.tabIndex = 0;
                 const bar = document.createElement('span');
                 bar.className = 'jelana-chart-bar';
                 bar.style.height = `${Math.max(2, Number(pick(row, 'durationSeconds') || 0) / maxDuration * 100)}%`;
                 const tooltip = document.createElement('span');
                 tooltip.className = 'jelana-chart-tooltip';
                 tooltip.textContent = `${pick(row, 'date')} · ${pick(row, 'plays')} visningar · ${duration(pick(row, 'durationSeconds'))}`;
+                wrapper.setAttribute('aria-label', tooltip.textContent);
                 wrapper.append(bar, tooltip);
                 return wrapper;
             }));

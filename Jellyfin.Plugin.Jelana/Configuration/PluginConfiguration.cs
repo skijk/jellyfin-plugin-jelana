@@ -4,5 +4,4 @@ namespace Jellyfin.Plugin.Jelana.Configuration;
 
 public sealed class PluginConfiguration : BasePluginConfiguration
 {
-    public int RetentionDays { get; set; } = 1095;
 }

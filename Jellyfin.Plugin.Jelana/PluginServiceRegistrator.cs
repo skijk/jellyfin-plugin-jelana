@@ -9,8 +9,8 @@ public sealed class PluginServiceRegistrator : IPluginServiceRegistrator
 {
     public void RegisterServices(IServiceCollection services, IServerApplicationHost applicationHost)
     {
-        services.AddSingleton<PlaybackStore>();
+        services.AddSingleton<PlaybackReportingReader>();
+        services.AddSingleton<LibraryAnalyticsReader>();
         services.AddSingleton<SnapshotStore>();
-        services.AddHostedService<PlaybackMonitor>();
     }
 }

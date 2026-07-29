@@ -24,11 +24,6 @@ public sealed class AnalyticsController : ControllerBase
             : Ok(snapshot);
     }
 
-    [HttpPost("Refresh")]
-    [Authorize(Policy = "RequiresElevation")]
-    public async Task<ActionResult<AnalyticsSnapshot>> Refresh(CancellationToken cancellationToken) =>
-        Ok(await _snapshots.RefreshAsync(cancellationToken).ConfigureAwait(false));
-
     [HttpGet("Client.css")]
     [AllowAnonymous]
     public IActionResult Css() => Embedded("Web.jelana.css", "text/css; charset=utf-8");

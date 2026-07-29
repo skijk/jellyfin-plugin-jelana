@@ -32,6 +32,7 @@
 .jelana-activity-panel{width:100%;box-sizing:border-box;margin-bottom:1rem}
 .jelana-personal-panel{margin-bottom:1rem}
 .jelana-personal-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}
+.jelana-personal-facts[hidden]{display:none}
 .jelana-personal-facts div{padding:1rem;border-radius:10px;background:rgba(0,0,0,.16)}
 .jelana-personal-facts span{display:block;margin-bottom:.3rem;opacity:.68}
 .jelana-personal-facts strong{font-size:1.35rem}

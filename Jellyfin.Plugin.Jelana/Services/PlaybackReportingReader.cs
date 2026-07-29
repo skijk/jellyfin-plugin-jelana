@@ -55,7 +55,7 @@ public sealed class PlaybackReportingReader
             await TopSeriesAsync(connection, 30, cancellationToken).ConfigureAwait(false),
             await TopUsersAsync(connection, 7, cancellationToken).ConfigureAwait(false),
             await TopUsersAsync(connection, 30, cancellationToken).ConfigureAwait(false),
-            await CountsAsync(connection, "PlaybackMethod", 30, 20, cancellationToken).ConfigureAwait(false),
+            await PlaybackMethodsAsync(connection, 30, cancellationToken).ConfigureAwait(false),
             await CountsAsync(connection, "COALESCE(NULLIF(ClientName, ''), NULLIF(DeviceName, ''), 'Unknown')", 30, 6, cancellationToken).ConfigureAwait(false),
             await ActivityAsync(connection, 30, cancellationToken).ConfigureAwait(false));
     }
@@ -165,6 +165,37 @@ public sealed class PlaybackReportingReader
     {
         await using var command = db.CreateCommand();
         command.CommandText = $"SELECT COALESCE(NULLIF({expression}, ''), 'Unknown'), COUNT(*) FROM PlaybackActivity WHERE DateCreated >= $since GROUP BY 1 ORDER BY 2 DESC LIMIT {limit}";
+        command.Parameters.AddWithValue("$since", Since(days));
+        var result = new List<NameCount>();
+        await using var rows = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
+        while (await rows.ReadAsync(token).ConfigureAwait(false))
+        {
+            result.Add(new NameCount(rows.GetString(0), rows.GetInt32(1)));
+        }
+
+        return result;
+    }
+
+    private static async Task<IReadOnlyList<NameCount>> PlaybackMethodsAsync(
+        SqliteConnection db,
+        int days,
+        CancellationToken token)
+    {
+        await using var command = db.CreateCommand();
+        command.CommandText = """
+            SELECT
+                CASE
+                    WHEN LOWER(COALESCE(PlaybackMethod, '')) LIKE 'transcode%' THEN 'Transcodes'
+                    WHEN LOWER(REPLACE(COALESCE(PlaybackMethod, ''), ' ', '')) = 'directplay' THEN 'Direct play'
+                    WHEN LOWER(REPLACE(COALESCE(PlaybackMethod, ''), ' ', '')) = 'directstream' THEN 'Direct stream'
+                    ELSE 'Unknown'
+                END AS Method,
+                COUNT(*)
+            FROM PlaybackActivity
+            WHERE DateCreated >= $since
+            GROUP BY Method
+            ORDER BY COUNT(*) DESC
+            """;
         command.Parameters.AddWithValue("$since", Since(days));
         var result = new List<NameCount>();
         await using var rows = await command.ExecuteReaderAsync(token).ConfigureAwait(false);

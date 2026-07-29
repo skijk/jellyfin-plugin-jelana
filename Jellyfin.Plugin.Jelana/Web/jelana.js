@@ -1,7 +1,7 @@
 (() => {
     'use strict';
     const STYLE_ID = 'jelana-dashboard-styles';
-    const VERSION = '0.1.3.0';
+    const VERSION = '0.1.4.0';
     function ensureStyles() {
         let stylesheet = document.getElementById(STYLE_ID);
         if (stylesheet) {
@@ -44,6 +44,28 @@
             return item;
         }));
     };
+    const rankingList = (id, rows, value) => {
+        const target = page.querySelector(id);
+        target.replaceChildren(...(rows || []).map((row, index) => {
+            const item = document.createElement('li');
+            item.className = 'jelana-ranking-item';
+            const image = document.createElement('img');
+            image.className = 'jelana-ranking-thumb';
+            image.loading = 'lazy';
+            image.alt = '';
+            image.src = ApiClient.getUrl(`Items/${pick(row, 'id')}/Images/Primary`, {
+                maxWidth: 96,
+                quality: 82
+            });
+            image.addEventListener('error', () => image.classList.add('is-missing'));
+            const name = document.createElement('span');
+            name.textContent = `${index + 1}. ${pick(row, 'name')}`;
+            const count = document.createElement('strong');
+            count.textContent = value(row);
+            item.append(image, name, count);
+            return item;
+        }));
+    };
     const facts = (id, rows) => {
         const target = page.querySelector(id);
         target.replaceChildren(...rows.map(([label, value]) => {
@@ -82,8 +104,8 @@
                 card.append(strong, span);
                 return card;
             }));
-            list('#jelanaMovies', pick(data, 'topMovies30'), row => `${pick(row, 'plays')} visningar`);
-            list('#jelanaSeries', pick(data, 'topSeries30'), row => `${pick(row, 'plays')} visningar`);
+            rankingList('#jelanaMovies', pick(data, 'topMovies30'), row => `${pick(row, 'plays')} visningar`);
+            rankingList('#jelanaSeries', pick(data, 'topSeries30'), row => `${pick(row, 'plays')} visningar`);
             list('#jelanaUsers', pick(data, 'topUsers30'), row => duration(pick(row, 'durationSeconds')));
             list('#jelanaClients', pick(data, 'clients'), row => String(pick(row, 'count')));
             list('#jelanaMethods', pick(data, 'playbackMethods'), row => String(pick(row, 'count')));
@@ -109,10 +131,16 @@
             const activity = pick(data, 'activity') || [];
             const maxDuration = Math.max(1, ...activity.map(row => Number(pick(row, 'durationSeconds') || 0)));
             page.querySelector('#jelanaActivity').replaceChildren(...activity.map(row => {
+                const wrapper = document.createElement('span');
+                wrapper.className = 'jelana-chart-column';
                 const bar = document.createElement('span');
+                bar.className = 'jelana-chart-bar';
                 bar.style.height = `${Math.max(2, Number(pick(row, 'durationSeconds') || 0) / maxDuration * 100)}%`;
-                bar.title = `${pick(row, 'date')}: ${duration(pick(row, 'durationSeconds'))}`;
-                return bar;
+                const tooltip = document.createElement('span');
+                tooltip.className = 'jelana-chart-tooltip';
+                tooltip.textContent = `${pick(row, 'date')} · ${pick(row, 'plays')} visningar · ${duration(pick(row, 'durationSeconds'))}`;
+                wrapper.append(bar, tooltip);
+                return wrapper;
             }));
             page.querySelector('#jelanaRecent').replaceChildren(...(pick(data, 'recent') || []).map(item => {
                 const link = document.createElement('a');

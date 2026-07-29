@@ -1,7 +1,7 @@
 (() => {
     'use strict';
     const STYLE_ID = 'jelana-dashboard-styles';
-    const VERSION = '0.1.5.0';
+    const VERSION = '0.1.6.0';
     function ensureStyles() {
         let stylesheet = document.getElementById(STYLE_ID);
         if (stylesheet) {
@@ -71,6 +71,9 @@
         target.replaceChildren(...(rows || []).map((row, index) => {
             const item = document.createElement('li');
             item.className = 'jelana-ranking-item';
+            const link = document.createElement('a');
+            link.className = 'jelana-ranking-link';
+            link.href = `#!/details?id=${encodeURIComponent(pick(row, 'id'))}`;
             const image = document.createElement('img');
             image.className = 'jelana-ranking-thumb';
             image.loading = 'lazy';
@@ -82,9 +85,10 @@
             image.addEventListener('error', () => image.classList.add('is-missing'));
             const name = document.createElement('span');
             name.textContent = `${index + 1}. ${pick(row, 'name')}`;
+            link.append(image, name);
             const count = document.createElement('strong');
             count.textContent = value(row);
-            item.append(image, name, count);
+            item.append(link, count);
             return item;
         }));
     };
@@ -154,7 +158,7 @@
             list('#jelanaAudio', dictionaryRows(pick(profile, 'audio')), row => String(row.count));
             const activity = pick(data, 'activity') || [];
             const maxDuration = Math.max(1, ...activity.map(row => Number(pick(row, 'durationSeconds') || 0)));
-            page.querySelector('#jelanaActivity').replaceChildren(...activity.map(row => {
+            page.querySelector('#jelanaActivity').replaceChildren(...activity.map((row, index) => {
                 const wrapper = document.createElement('span');
                 wrapper.className = 'jelana-chart-column';
                 wrapper.tabIndex = 0;
@@ -165,7 +169,16 @@
                 tooltip.className = 'jelana-chart-tooltip';
                 tooltip.textContent = `${pick(row, 'date')} · ${pick(row, 'plays')} visningar · ${duration(pick(row, 'durationSeconds'))}`;
                 wrapper.setAttribute('aria-label', tooltip.textContent);
-                wrapper.append(bar, tooltip);
+                const dateLabel = document.createElement('span');
+                dateLabel.className = 'jelana-chart-date';
+                const showDate = index === 0 || index === activity.length - 1 || index % 5 === 0;
+                if (showDate) {
+                    dateLabel.textContent = new Date(`${pick(row, 'date')}T12:00:00`).toLocaleDateString('sv-SE', {
+                        month: 'short',
+                        day: 'numeric'
+                    });
+                }
+                wrapper.append(bar, tooltip, dateLabel);
                 return wrapper;
             }));
             page.querySelector('#jelanaRecent').replaceChildren(...(pick(data, 'recent') || []).map(item => {

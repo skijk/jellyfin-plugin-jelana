@@ -59,7 +59,7 @@ to JS Injector:
         if (document.getElementById('jelana-menu-loader')) return;
         const script = document.createElement('script');
         script.id = 'jelana-menu-loader';
-        script.src = ApiClient.getUrl('Jelana/Menu.js', { version: '0.1.13.0' });
+        script.src = ApiClient.getUrl('Jelana/Menu.js', { version: '0.1.14.0' });
         document.head.appendChild(script);
     };
 

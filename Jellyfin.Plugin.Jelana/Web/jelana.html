@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+<head>
+    <title>Statistik</title>
+    <link rel="stylesheet" href="/Jelana/Client.css">
+</head>
+<body>
+<div id="jelanaPage" data-role="page" class="page type-interior pluginConfigurationPage">
+    <div data-role="content">
+        <div class="content-primary jelana-shell">
+            <header class="jelana-header">
+                <div><p class="jelana-kicker">JELLYFIN ANALYTICS</p><h1>Statistik</h1></div>
+                <p id="jelanaUpdated" class="jelana-muted"></p>
+            </header>
+            <div id="jelanaLoading" class="jelana-panel">Läser den senaste timsnapshoten…</div>
+            <main id="jelanaContent" hidden>
+                <section id="jelanaMetrics" class="jelana-metrics"></section>
+                <section class="jelana-grid">
+                    <article class="jelana-panel"><h2>Mest spelade filmer</h2><ol id="jelanaMovies"></ol></article>
+                    <article class="jelana-panel"><h2>Mest spelade serier</h2><ol id="jelanaSeries"></ol></article>
+                    <article class="jelana-panel"><h2>Mest aktiva användare</h2><ol id="jelanaUsers"></ol></article>
+                    <article class="jelana-panel"><h2>Klienter</h2><ol id="jelanaClients"></ol></article>
+                </section>
+            </main>
+        </div>
+    </div>
+    <script src="/Jelana/Client.js"></script>
+</div>
+</body>
+</html>

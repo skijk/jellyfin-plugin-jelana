@@ -48,7 +48,7 @@ public sealed class LibraryAnalyticsReader
             series.Count(x => x.DateCreated >= now.AddDays(-30)));
         var recent = recentCandidates
             .OrderByDescending(x => x.DateCreated)
-            .Take(8)
+            .Take(16)
             .Select(x => new RecentItem(
                 x.Id.ToString("N"),
                 x.Name,

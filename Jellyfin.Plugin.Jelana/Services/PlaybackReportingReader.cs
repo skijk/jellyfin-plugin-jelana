@@ -492,7 +492,7 @@ public sealed class PlaybackReportingReader
             .Where(x => x.Current > 0)
             .OrderByDescending(x => x.Current - x.Previous)
             .ThenByDescending(x => x.Current)
-            .Take(8)
+            .Take(16)
             .Select(x => new TrendingItem(x.Id, x.Name, x.Type, x.Current, x.Previous, x.Users.Count))
             .ToList();
     }

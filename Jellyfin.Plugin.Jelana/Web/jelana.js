@@ -1,5 +1,22 @@
 (() => {
     'use strict';
+    const STYLE_ID = 'jelana-dashboard-styles';
+    const VERSION = '0.1.3.0';
+    function ensureStyles() {
+        let stylesheet = document.getElementById(STYLE_ID);
+        if (stylesheet) {
+            if (stylesheet.dataset.version === VERSION) return;
+            stylesheet.remove();
+        }
+
+        stylesheet = document.createElement('link');
+        stylesheet.id = STYLE_ID;
+        stylesheet.dataset.version = VERSION;
+        stylesheet.rel = 'stylesheet';
+        stylesheet.href = ApiClient.getUrl('Jelana/Client.css', { version: VERSION });
+        document.head.append(stylesheet);
+    }
+    ensureStyles();
     const page = document.querySelector('#jelanaPage');
     const pick = (value, name) => value?.[name] ?? value?.[name[0].toUpperCase() + name.slice(1)];
     const duration = seconds => {
@@ -109,7 +126,11 @@
                 return link;
             }));
             page.querySelector('#jelanaUpdated').textContent =
-                `Uppdaterad ${new Date(pick(data, 'generatedAt')).toLocaleString()}`;
+                `Uppdaterad ${new Date(pick(data, 'generatedAt')).toLocaleString('sv-SE', {
+                    dateStyle: 'short',
+                    timeStyle: 'medium',
+                    hour12: false
+                })}`;
             loading.hidden = true;
             page.querySelector('#jelanaContent').hidden = false;
         } catch (error) {

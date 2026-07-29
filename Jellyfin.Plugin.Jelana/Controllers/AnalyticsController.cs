@@ -26,11 +26,19 @@ public sealed class AnalyticsController : ControllerBase
 
     [HttpGet("Client.css")]
     [AllowAnonymous]
-    public IActionResult Css() => Embedded("Web.jelana.css", "text/css; charset=utf-8");
+    public IActionResult Css()
+    {
+        Response.Headers.CacheControl = "no-cache";
+        return Embedded("Web.jelana.css", "text/css; charset=utf-8");
+    }
 
     [HttpGet("Client.js")]
     [AllowAnonymous]
-    public IActionResult Js() => Embedded("Web.jelana.js", "text/javascript; charset=utf-8");
+    public IActionResult Js()
+    {
+        Response.Headers.CacheControl = "no-cache";
+        return Embedded("Web.jelana.js", "text/javascript; charset=utf-8");
+    }
 
     private FileStreamResult Embedded(string suffix, string contentType)
     {

@@ -45,14 +45,14 @@ directory, then restart Jellyfin.
 ## Menu link for regular users
 
 Jellyfin does not expose server plugin pages in the regular user menu. With JS
-Injector, Jelana can add **Statistik** for every signed-in user. Add this loader
+Injector, Jelana can add **Analytics** for every signed-in user. Add this loader
 to JS Injector:
 
 ```js
 if (!document.getElementById('jelana-menu-loader')) {
     const script = document.createElement('script');
     script.id = 'jelana-menu-loader';
-    script.src = ApiClient.getUrl('Jelana/Menu.js', { version: '0.1.9.0' });
+    script.src = ApiClient.getUrl('Jelana/Menu.js', { version: '0.1.10.0' });
     document.head.appendChild(script);
 }
 ```

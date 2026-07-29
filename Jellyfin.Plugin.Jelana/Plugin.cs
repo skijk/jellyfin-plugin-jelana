@@ -20,7 +20,7 @@ public sealed class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         yield return new PluginPageInfo
         {
             Name = Name,
-            DisplayName = "Statistik",
+            DisplayName = "Analytics",
             EnableInMainMenu = true,
             MenuIcon = "analytics",
             EmbeddedResourcePath = string.Format(

@@ -20,7 +20,7 @@
 
         const label = document.createElement('span');
         label.className = 'navMenuOptionText';
-        label.textContent = 'Statistik';
+        label.textContent = 'Analytics';
 
         link.append(icon, label);
         container.prepend(link);

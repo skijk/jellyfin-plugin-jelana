@@ -307,7 +307,7 @@ public sealed class PlaybackReportingReader
                 """;
             command.Parameters.AddWithValue("$since", Since(365));
             await using var rows = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
-            var names = new[] { "söndag", "måndag", "tisdag", "onsdag", "torsdag", "fredag", "lördag" };
+            var names = new[] { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
             while (await rows.ReadAsync(token).ConfigureAwait(false))
             {
                 var id = rows.GetString(0);
@@ -325,10 +325,10 @@ public sealed class PlaybackReportingReader
             command.CommandText = SessionCte("WHERE DateCreated >= $since") + """
                 SELECT REPLACE(LOWER(UserId), '-', ''),
                        CASE
-                           WHEN CAST(strftime('%H', DateCreated) AS INTEGER) < 6 THEN 'Natt · 00–06'
-                           WHEN CAST(strftime('%H', DateCreated) AS INTEGER) < 12 THEN 'Morgon · 06–12'
-                           WHEN CAST(strftime('%H', DateCreated) AS INTEGER) < 18 THEN 'Eftermiddag · 12–18'
-                           ELSE 'Kväll · 18–24'
+                           WHEN CAST(strftime('%H', DateCreated) AS INTEGER) < 6 THEN 'Night · 00–06'
+                           WHEN CAST(strftime('%H', DateCreated) AS INTEGER) < 12 THEN 'Morning · 06–12'
+                           WHEN CAST(strftime('%H', DateCreated) AS INTEGER) < 18 THEN 'Afternoon · 12–18'
+                           ELSE 'Evening · 18–24'
                        END,
                        SUM(NewPlay)
                 FROM sessions
@@ -425,11 +425,11 @@ public sealed class PlaybackReportingReader
                 var episode = Guid.TryParse(itemId, out var id) ? _library.GetItemById(id) as Episode : null;
                 itemId = episode?.Series?.Id.ToString("N") ?? string.Empty;
                 itemName = episode?.Series?.Name ?? FallbackSeriesName(itemName);
-                type = "Serie";
+                type = "Series";
             }
             else
             {
-                type = "Film";
+                type = "Movie";
             }
 
             var key = itemId.Length > 0 ? $"{type}:{itemId}" : $"{type}:{itemName.ToLowerInvariant()}";

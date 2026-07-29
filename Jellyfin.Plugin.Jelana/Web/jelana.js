@@ -1,7 +1,7 @@
 (() => {
     'use strict';
     const STYLE_ID = 'jelana-dashboard-styles';
-    const VERSION = '0.1.9.0';
+    const VERSION = '0.1.10.0';
     const embeddedInJellyfin = typeof window.ApiClient !== 'undefined';
     const basePath = embeddedInJellyfin
         ? ''
@@ -181,19 +181,19 @@
     };
     const signedPercent = value => `${value > 0 ? '+' : ''}${value}%`;
     const personalFacts = (id, period) => facts(id, [
-        ['Filmvisningar', pick(period, 'movies')],
-        ['Avsnittsvisningar', pick(period, 'episodes')],
-        ['Tittartid', duration(pick(period, 'durationSeconds'))]
+        ['Movie plays', pick(period, 'movies')],
+        ['Episode plays', pick(period, 'episodes')],
+        ['Watch time', duration(pick(period, 'durationSeconds'))]
     ]);
     async function load() {
         const loading = page.querySelector('#jelanaLoading');
         try {
             const data = await getSnapshot();
             const metrics = [
-                ['Visningar · 30 dagar', pick(pick(data, 'playback30'), 'plays')],
-                ['Tittartid · 30 dagar', duration(pick(pick(data, 'playback30'), 'durationSeconds'))],
-                ['Visningar · totalt', pick(pick(data, 'playbackAll'), 'plays')],
-                ['Tittartid · totalt', duration(pick(pick(data, 'playbackAll'), 'durationSeconds'))]
+                ['Plays · 30 days', pick(pick(data, 'playback30'), 'plays')],
+                ['Watch time · 30 days', duration(pick(pick(data, 'playback30'), 'durationSeconds'))],
+                ['Plays · all time', pick(pick(data, 'playbackAll'), 'plays')],
+                ['Watch time · all time', duration(pick(pick(data, 'playbackAll'), 'durationSeconds'))]
             ];
             page.querySelector('#jelanaMetrics').replaceChildren(...metrics.map(([label, value]) => {
                 const card = document.createElement('article');
@@ -206,28 +206,28 @@
                 return card;
             }));
             rankingList('#jelanaMovies', pick(data, 'topMovies30'), row =>
-                `${pick(row, 'plays')} visningar · ${pick(row, 'uniqueViewers')} tittare`);
+                `${pick(row, 'plays')} plays · ${pick(row, 'uniqueViewers')} viewers`);
             rankingList('#jelanaSeries', pick(data, 'topSeries30'), row =>
-                `${pick(row, 'plays')} visningar · ${pick(row, 'uniqueViewers')} tittare`);
+                `${pick(row, 'plays')} plays · ${pick(row, 'uniqueViewers')} viewers`);
             list('#jelanaUsers', pick(data, 'topUsers30'), row => duration(pick(row, 'durationSeconds')));
             list('#jelanaClients', pick(data, 'clients'), row => String(pick(row, 'count')));
             list('#jelanaMethods', pick(data, 'playbackMethods'), row => String(pick(row, 'count')));
             const counts = pick(data, 'counts');
             facts('#jelanaLibrary', [
-                ['Filmer', pick(counts, 'movies')],
-                ['Serier', pick(counts, 'series')],
-                ['Avsnitt', pick(counts, 'episodes')],
-                ['Användare', pick(counts, 'users')],
-                ['Lagring', bytes(pick(pick(data, 'storage'), 'total'))]
+                ['Movies', pick(counts, 'movies')],
+                ['Series', pick(counts, 'series')],
+                ['Episodes', pick(counts, 'episodes')],
+                ['Users', pick(counts, 'users')],
+                ['Storage', bytes(pick(pick(data, 'storage'), 'total'))]
             ]);
             const added = pick(data, 'newItems');
             facts('#jelanaNew7', [
-                ['Filmer', pick(added, 'movies7')],
-                ['Serier', pick(added, 'series7')]
+                ['Movies', pick(added, 'movies7')],
+                ['Series', pick(added, 'series7')]
             ]);
             facts('#jelanaNew30', [
-                ['Filmer', pick(added, 'movies30')],
-                ['Serier', pick(added, 'series30')]
+                ['Movies', pick(added, 'movies30')],
+                ['Series', pick(added, 'series30')]
             ]);
             const profile = pick(data, 'mediaProfile');
             list('#jelanaVideo', dictionaryRows(pick(profile, 'video')), row => String(row.count));
@@ -242,8 +242,8 @@
                 pick(monthlyPrevious, 'durationSeconds'));
             const monthlyTarget = page.querySelector('#jelanaMonthlyTrend');
             monthlyTarget.replaceChildren(...[
-                ['Visningar', pick(monthlyCurrent, 'plays'), playsChange],
-                ['Tittartid', duration(pick(monthlyCurrent, 'durationSeconds')), durationChange]
+                ['Plays', pick(monthlyCurrent, 'plays'), playsChange],
+                ['Watch time', duration(pick(monthlyCurrent, 'durationSeconds')), durationChange]
             ].map(([label, value, change]) => {
                 const box = document.createElement('div');
                 const span = document.createElement('span');
@@ -270,7 +270,7 @@
                 const current = Number(pick(row, 'currentPlays') || 0);
                 const previous = Number(pick(row, 'previousPlays') || 0);
                 const value = document.createElement('strong');
-                value.textContent = `${current} · ${current - previous >= 0 ? '+' : ''}${current - previous} · ${pick(row, 'uniqueViewers')} tittare`;
+                value.textContent = `${current} · ${current - previous >= 0 ? '+' : ''}${current - previous} · ${pick(row, 'uniqueViewers')} viewers`;
                 meta.append(type, value);
                 item.append(link, meta);
                 return item;
@@ -292,7 +292,7 @@
                 dateLabel.className = 'jelana-chart-date';
                 const showDate = index === 0 || index === activity.length - 1 || index % 5 === 0;
                 if (showDate) {
-                    dateLabel.textContent = new Date(`${pick(row, 'date')}T12:00:00`).toLocaleDateString('sv-SE', {
+                    dateLabel.textContent = new Date(`${pick(row, 'date')}T12:00:00`).toLocaleDateString('en-GB', {
                         month: 'short',
                         day: 'numeric'
                     });
@@ -301,7 +301,7 @@
                 return wrapper;
             }));
             page.querySelector('#jelanaUpdated').textContent =
-                `Uppdaterad ${new Date(pick(data, 'generatedAt')).toLocaleString('sv-SE', {
+                `Updated ${new Date(pick(data, 'generatedAt')).toLocaleString('en-GB', {
                     dateStyle: 'short',
                     timeStyle: 'medium',
                     hour12: false
@@ -332,12 +332,12 @@
                 loading.replaceChildren();
                 const message = document.createElement('span');
                 const login = document.createElement('a');
-                message.textContent = 'Du behöver vara inloggad i Jellyfin för att se statistiken. ';
+                message.textContent = 'You need to be signed in to Jellyfin to view analytics. ';
                 login.href = `${basePath}/web/`;
-                login.textContent = 'Logga in';
+                login.textContent = 'Sign in';
                 loading.append(message, login);
             } else {
-                loading.textContent = 'Ingen snapshot finns ännu. Den skapas automatiskt i bakgrunden.';
+                loading.textContent = 'No snapshot is available yet. It is created automatically in the background.';
             }
         }
     }

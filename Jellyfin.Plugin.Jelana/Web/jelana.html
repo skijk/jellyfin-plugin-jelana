@@ -43,23 +43,27 @@
             <div id="jelanaLoading" class="jelana-panel">Läser den senaste timsnapshoten…</div>
             <main id="jelanaContent" hidden>
                 <section id="jelanaMetrics" class="jelana-metrics"></section>
-                <section class="jelana-grid jelana-grid-wide">
+                <section class="jelana-panel jelana-activity-panel">
+                    <h2>Aktivitet · 30 dagar</h2>
+                    <div id="jelanaActivity" class="jelana-chart"></div>
+                </section>
+                <section id="jelanaPersonalPanel" class="jelana-panel jelana-personal-panel jelana-tab-panel" data-jelana-tabs="personal" hidden>
+                    <div class="jelana-panel-heading">
+                        <h2>Min statistik</h2>
+                        <div class="jelana-tabs" role="tablist" aria-label="Period för min statistik">
+                            <button type="button" class="is-active" data-tab="personal30">30 dagar</button>
+                            <button type="button" data-tab="personal365">1 år</button>
+                            <button type="button" data-tab="personalAll">Totalt</button>
+                        </div>
+                    </div>
+                    <div id="jelanaPersonal30" class="jelana-personal-facts" data-tab-content="personal30"></div>
+                    <div id="jelanaPersonal365" class="jelana-personal-facts" data-tab-content="personal365" hidden></div>
+                    <div id="jelanaPersonalAll" class="jelana-personal-facts" data-tab-content="personalAll" hidden></div>
+                </section>
+                <section class="jelana-grid">
                     <article class="jelana-panel">
                         <h2>Bibliotek</h2>
                         <div id="jelanaLibrary" class="jelana-facts"></div>
-                    </article>
-                    <article class="jelana-panel jelana-tab-panel" data-jelana-tabs="profile">
-                        <div class="jelana-panel-heading">
-                            <h2>Medieprofil</h2>
-                            <div class="jelana-tabs" role="tablist" aria-label="Medieprofil">
-                                <button type="button" class="is-active" data-tab="video">Video</button>
-                                <button type="button" data-tab="resolution">Upplösning</button>
-                                <button type="button" data-tab="audio">Ljud</button>
-                            </div>
-                        </div>
-                        <div data-tab-content="video"><ol id="jelanaVideo"></ol></div>
-                        <div data-tab-content="resolution" hidden><ol id="jelanaResolution"></ol></div>
-                        <div data-tab-content="audio" hidden><ol id="jelanaAudio"></ol></div>
                     </article>
                     <article class="jelana-panel jelana-tab-panel" data-jelana-tabs="new">
                         <div class="jelana-panel-heading">
@@ -73,14 +77,25 @@
                         <div id="jelanaNew30" class="jelana-facts" data-tab-content="30" hidden></div>
                     </article>
                 </section>
-                <section class="jelana-panel jelana-activity-panel">
-                    <h2>Aktivitet · 30 dagar</h2>
-                    <div id="jelanaActivity" class="jelana-chart"></div>
-                </section>
                 <section class="jelana-grid">
                     <article class="jelana-panel"><h2>Mest spelade filmer</h2><ol id="jelanaMovies"></ol></article>
                     <article class="jelana-panel"><h2>Mest spelade serier</h2><ol id="jelanaSeries"></ol></article>
                     <article class="jelana-panel"><h2>Mest aktiva användare</h2><ol id="jelanaUsers"></ol></article>
+                </section>
+                <section class="jelana-grid">
+                    <article class="jelana-panel jelana-tab-panel" data-jelana-tabs="profile">
+                        <div class="jelana-panel-heading">
+                            <h2>Medieprofil</h2>
+                            <div class="jelana-tabs" role="tablist" aria-label="Medieprofil">
+                                <button type="button" class="is-active" data-tab="video">Video</button>
+                                <button type="button" data-tab="resolution">Upplösning</button>
+                                <button type="button" data-tab="audio">Ljud</button>
+                            </div>
+                        </div>
+                        <div data-tab-content="video"><ol id="jelanaVideo"></ol></div>
+                        <div data-tab-content="resolution" hidden><ol id="jelanaResolution"></ol></div>
+                        <div data-tab-content="audio" hidden><ol id="jelanaAudio"></ol></div>
+                    </article>
                     <article class="jelana-panel jelana-tab-panel" data-jelana-tabs="playback">
                         <div class="jelana-panel-heading">
                             <h2>Uppspelning</h2>
@@ -93,11 +108,10 @@
                         <div data-tab-content="methods" hidden><ol id="jelanaMethods"></ol></div>
                     </article>
                 </section>
-                <section class="jelana-panel jelana-recent-panel"><h2>Nyligen tillagt</h2><div id="jelanaRecent" class="jelana-recent"></div></section>
             </main>
         </div>
     </div>
-    <script src="/Jelana/Client.js?v=0.1.6.0"></script>
+    <script src="/Jelana/Client.js?v=0.1.7.0"></script>
 </div>
 </body>
 </html>

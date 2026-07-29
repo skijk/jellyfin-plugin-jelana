@@ -1,7 +1,74 @@
 (() => {
     'use strict';
     const STYLE_ID = 'jelana-dashboard-styles';
-    const VERSION = '0.1.6.0';
+    const VERSION = '0.1.7.0';
+    const embeddedInJellyfin = typeof window.ApiClient !== 'undefined';
+    const basePath = embeddedInJellyfin
+        ? ''
+        : location.pathname.slice(0, location.pathname.toLowerCase().lastIndexOf('/jelana/user'));
+    let accessToken = '';
+    if (!embeddedInJellyfin) {
+        document.documentElement.classList.add('jelana-standalone');
+        try {
+            const credentials = JSON.parse(localStorage.getItem('jellyfin_credentials') || '{}');
+            const servers = credentials.Servers || [];
+            const sameServer = servers.find(server =>
+                [server.Address, server.ManualAddress, server.LocalAddress]
+                    .filter(Boolean)
+                    .some(address => {
+                        try {
+                            const url = new URL(address, location.origin);
+                            return url.origin === location.origin && location.pathname.startsWith(url.pathname.replace(/\/$/, ''));
+                        } catch {
+                            return false;
+                        }
+                    }));
+            accessToken = (sameServer || servers.find(server => server.AccessToken))?.AccessToken || '';
+        } catch {
+            accessToken = '';
+        }
+    }
+    const getUrl = (path, parameters = {}) => {
+        if (embeddedInJellyfin) return ApiClient.getUrl(path, parameters);
+        const url = new URL(`${basePath}/${path}`.replace(/\/{2,}/g, '/'), location.origin);
+        Object.entries(parameters).forEach(([name, value]) => url.searchParams.set(name, value));
+        if (accessToken && path.includes('/Images/')) url.searchParams.set('api_key', accessToken);
+        return url.toString();
+    };
+    const detailUrl = id => embeddedInJellyfin
+        ? `#!/details?id=${encodeURIComponent(id)}`
+        : `${basePath}/web/#/details?id=${encodeURIComponent(id)}`;
+    const getSnapshot = async () => {
+        if (embeddedInJellyfin) {
+            return ApiClient.ajax({
+                type: 'GET',
+                url: getUrl('Jelana/Snapshot'),
+                dataType: 'json'
+            });
+        }
+        const response = await fetch(getUrl('Jelana/Snapshot'), {
+            headers: accessToken ? { 'X-Emby-Token': accessToken } : {}
+        });
+        if (response.status === 401 || response.status === 403) {
+            throw new Error('AUTH_REQUIRED');
+        }
+        if (!response.ok) throw new Error(`HTTP_${response.status}`);
+        return response.json();
+    };
+    const getPersonal = async () => {
+        if (embeddedInJellyfin) {
+            return ApiClient.ajax({
+                type: 'GET',
+                url: getUrl('Jelana/Personal'),
+                dataType: 'json'
+            });
+        }
+        const response = await fetch(getUrl('Jelana/Personal'), {
+            headers: accessToken ? { 'X-Emby-Token': accessToken } : {}
+        });
+        if (!response.ok) throw new Error(`HTTP_${response.status}`);
+        return response.json();
+    };
     function ensureStyles() {
         let stylesheet = document.getElementById(STYLE_ID);
         if (stylesheet) {
@@ -13,7 +80,7 @@
         stylesheet.id = STYLE_ID;
         stylesheet.dataset.version = VERSION;
         stylesheet.rel = 'stylesheet';
-        stylesheet.href = ApiClient.getUrl('Jelana/Client.css', { version: VERSION });
+        stylesheet.href = getUrl('Jelana/Client.css', { version: VERSION });
         document.head.append(stylesheet);
     }
     ensureStyles();
@@ -73,12 +140,12 @@
             item.className = 'jelana-ranking-item';
             const link = document.createElement('a');
             link.className = 'jelana-ranking-link';
-            link.href = `#!/details?id=${encodeURIComponent(pick(row, 'id'))}`;
+            link.href = detailUrl(pick(row, 'id'));
             const image = document.createElement('img');
             image.className = 'jelana-ranking-thumb';
             image.loading = 'lazy';
             image.alt = '';
-            image.src = ApiClient.getUrl(`Items/${pick(row, 'id')}/Images/Primary`, {
+            image.src = getUrl(`Items/${pick(row, 'id')}/Images/Primary`, {
                 maxWidth: 96,
                 quality: 82
             });
@@ -106,14 +173,15 @@
     };
     const dictionaryRows = value =>
         Object.entries(value || {}).map(([name, count]) => ({ name, count }));
+    const personalFacts = (id, period) => facts(id, [
+        ['Filmvisningar', pick(period, 'movies')],
+        ['Avsnittsvisningar', pick(period, 'episodes')],
+        ['Tittartid', duration(pick(period, 'durationSeconds'))]
+    ]);
     async function load() {
         const loading = page.querySelector('#jelanaLoading');
         try {
-            const data = await ApiClient.ajax({
-                type: 'GET',
-                url: ApiClient.getUrl('Jelana/Snapshot'),
-                dataType: 'json'
-            });
+            const data = await getSnapshot();
             const metrics = [
                 ['Visningar · 30 dagar', pick(pick(data, 'playback30'), 'plays')],
                 ['Tittartid · 30 dagar', duration(pick(pick(data, 'playback30'), 'durationSeconds'))],
@@ -181,17 +249,6 @@
                 wrapper.append(bar, tooltip, dateLabel);
                 return wrapper;
             }));
-            page.querySelector('#jelanaRecent').replaceChildren(...(pick(data, 'recent') || []).map(item => {
-                const link = document.createElement('a');
-                link.href = `#!/details?id=${encodeURIComponent(pick(item, 'id'))}`;
-                const image = document.createElement('img');
-                image.loading = 'lazy';
-                image.src = ApiClient.getUrl(`Items/${pick(item, 'id')}/Images/Primary`, { maxWidth: 320, quality: 88 });
-                const name = document.createElement('strong');
-                name.textContent = pick(item, 'name');
-                link.append(image, name);
-                return link;
-            }));
             page.querySelector('#jelanaUpdated').textContent =
                 `Uppdaterad ${new Date(pick(data, 'generatedAt')).toLocaleString('sv-SE', {
                     dateStyle: 'short',
@@ -200,10 +257,29 @@
                 })}`;
             loading.hidden = true;
             page.querySelector('#jelanaContent').hidden = false;
+            try {
+                const personal = await getPersonal();
+                personalFacts('#jelanaPersonal30', pick(personal, 'last30Days'));
+                personalFacts('#jelanaPersonal365', pick(personal, 'lastYear'));
+                personalFacts('#jelanaPersonalAll', pick(personal, 'allTime'));
+                page.querySelector('#jelanaPersonalPanel').hidden = false;
+            } catch {
+                page.querySelector('#jelanaPersonalPanel').hidden = true;
+            }
         } catch (error) {
-            loading.textContent = 'Ingen snapshot finns ännu. Den skapas automatiskt i bakgrunden.';
+            if (error?.message === 'AUTH_REQUIRED') {
+                loading.replaceChildren();
+                const message = document.createElement('span');
+                const login = document.createElement('a');
+                message.textContent = 'Du behöver vara inloggad i Jellyfin för att se statistiken. ';
+                login.href = `${basePath}/web/`;
+                login.textContent = 'Logga in';
+                loading.append(message, login);
+            } else {
+                loading.textContent = 'Ingen snapshot finns ännu. Den skapas automatiskt i bakgrunden.';
+            }
         }
     }
     page.addEventListener('pageshow', load);
-    if (!window.jQuery) load();
+    if (!window.jQuery || !embeddedInJellyfin) load();
 })();

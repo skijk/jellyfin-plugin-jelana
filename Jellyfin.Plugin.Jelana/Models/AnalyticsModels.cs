@@ -16,6 +16,11 @@ public sealed record RankingItem(string Id, string Name, int Plays, long Duratio
 public sealed record NameCount(string Name, int Count);
 public sealed record DailyActivity(DateOnly Date, int Plays, long DurationSeconds);
 public sealed record PlaybackSummary(int Plays, long DurationSeconds);
+public sealed record PersonalPeriod(int Movies, int Episodes, long DurationSeconds);
+public sealed record PersonalAnalytics(
+    PersonalPeriod Last30Days,
+    PersonalPeriod LastYear,
+    PersonalPeriod AllTime);
 public sealed record LibraryCounts(int Movies, int Series, int Episodes, int Users);
 public sealed record NewItemCounts(int Movies7, int Movies30, int Series7, int Series30);
 public sealed record StorageBreakdown(IReadOnlyDictionary<string, long?> Libraries, long? Total);

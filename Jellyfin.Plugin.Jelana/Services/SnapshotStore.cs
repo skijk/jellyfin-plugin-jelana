@@ -10,6 +10,7 @@ public sealed class SnapshotStore
     private readonly PlaybackReportingReader _reporting;
     private readonly LibraryAnalyticsReader _library;
     private string SnapshotPath => Path.Combine(Plugin.Instance.DataFolderPath, "snapshot.json");
+    private string PersonalPath => Path.Combine(Plugin.Instance.DataFolderPath, "personal-snapshot.json");
 
     public SnapshotStore(PlaybackReportingReader reporting, LibraryAnalyticsReader library)
     {
@@ -23,6 +24,21 @@ public sealed class SnapshotStore
         await using var stream = File.OpenRead(SnapshotPath);
         return await JsonSerializer.DeserializeAsync<AnalyticsSnapshot>(stream, JsonOptions, cancellationToken)
             .ConfigureAwait(false);
+    }
+
+    public async Task<PersonalAnalytics?> ReadPersonalAsync(string userId, CancellationToken cancellationToken)
+    {
+        if (!File.Exists(PersonalPath)) return null;
+        await using var stream = File.OpenRead(PersonalPath);
+        var values = await JsonSerializer.DeserializeAsync<Dictionary<string, PersonalAnalytics>>(
+            stream,
+            JsonOptions,
+            cancellationToken).ConfigureAwait(false);
+        return values?.GetValueOrDefault(userId.Replace("-", string.Empty, StringComparison.Ordinal).ToLowerInvariant())
+            ?? new PersonalAnalytics(
+                new PersonalPeriod(0, 0, 0),
+                new PersonalPeriod(0, 0, 0),
+                new PersonalPeriod(0, 0, 0));
     }
 
     public async Task<AnalyticsSnapshot> RefreshAsync(CancellationToken cancellationToken)
@@ -56,6 +72,12 @@ public sealed class SnapshotStore
             await File.WriteAllTextAsync(temporary, JsonSerializer.Serialize(snapshot, JsonOptions), cancellationToken)
                 .ConfigureAwait(false);
             File.Move(temporary, SnapshotPath, true);
+            var personalTemporary = PersonalPath + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            await File.WriteAllTextAsync(
+                personalTemporary,
+                JsonSerializer.Serialize(playback.Personal, JsonOptions),
+                cancellationToken).ConfigureAwait(false);
+            File.Move(personalTemporary, PersonalPath, true);
             return snapshot;
         }
         finally

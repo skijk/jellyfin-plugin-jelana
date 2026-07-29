@@ -1,3 +1,6 @@
+.jelana-standalone{min-height:100%;background:#101010;color:#ddd;font-family:Arial,Helvetica,sans-serif;color-scheme:dark}
+.jelana-standalone body{min-height:100%;margin:0;background:#101010}
+.jelana-standalone a{color:#52b8df}
 .jelana-shell{max-width:1200px;margin:0 auto;padding:2rem}
 .jelana-header{display:flex;justify-content:space-between;align-items:end;gap:1rem;margin-bottom:1.5rem}
 .jelana-header h1{font-size:2.4rem;margin:.15rem 0}
@@ -27,6 +30,11 @@
 .jelana-ranking-thumb{width:30px;height:44px;flex:none;object-fit:cover;border-radius:4px;background:rgba(255,255,255,.06)}
 .jelana-ranking-thumb.is-missing{visibility:hidden}
 .jelana-activity-panel{width:100%;box-sizing:border-box;margin-bottom:1rem}
+.jelana-personal-panel{margin-bottom:1rem}
+.jelana-personal-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}
+.jelana-personal-facts div{padding:1rem;border-radius:10px;background:rgba(0,0,0,.16)}
+.jelana-personal-facts span{display:block;margin-bottom:.3rem;opacity:.68}
+.jelana-personal-facts strong{font-size:1.35rem}
 .jelana-chart{height:210px;display:flex;align-items:stretch;gap:4px;padding:28px 8px 30px;box-sizing:border-box}
 .jelana-chart-column{position:relative;flex:1;min-width:2px;display:flex;align-items:end}
 .jelana-chart-bar{display:block;width:100%;background:var(--jf-palette-primary-main,#00a4dc);border-radius:3px 3px 0 0;opacity:.85;transition:opacity .15s,filter .15s}
@@ -41,5 +49,5 @@
 .jelana-recent strong{display:block;margin-top:.45rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media(max-width:1200px){.jelana-grid-wide{grid-template-columns:1fr 1fr}.jelana-recent{grid-template-columns:repeat(4,1fr)}}
 @media(max-width:800px){.jelana-metrics,.jelana-grid,.jelana-grid-wide{grid-template-columns:1fr}.jelana-shell{padding:1rem}.jelana-panel{padding:1rem}.jelana-recent{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:620px){.jelana-header{display:block}.jelana-panel-heading{display:block}.jelana-panel-heading h2{margin-bottom:.8rem}.jelana-tabs{display:flex;width:100%;box-sizing:border-box}.jelana-tabs button{flex:1;min-height:44px;font-size:.9rem;padding:.55rem .5rem}.jelana-recent{grid-template-columns:repeat(2,1fr)}.jelana-ranking-thumb{width:34px;height:50px}.jelana-chart{height:185px;gap:2px;padding-left:2px;padding-right:2px}.jelana-chart-date{font-size:.62rem}}
+@media(max-width:620px){.jelana-header{display:block}.jelana-panel-heading{display:block}.jelana-panel-heading h2{margin-bottom:.8rem}.jelana-tabs{display:flex;width:100%;box-sizing:border-box}.jelana-tabs button{flex:1;min-height:44px;font-size:.9rem;padding:.55rem .5rem}.jelana-personal-facts{grid-template-columns:1fr}.jelana-recent{grid-template-columns:repeat(2,1fr)}.jelana-ranking-thumb{width:34px;height:50px}.jelana-chart{height:185px;gap:2px;padding-left:2px;padding-right:2px}.jelana-chart-date{font-size:.62rem}}
 @media(pointer:coarse){.jelana-tabs button{min-height:44px}}

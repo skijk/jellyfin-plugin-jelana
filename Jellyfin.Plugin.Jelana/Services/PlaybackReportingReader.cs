@@ -57,7 +57,8 @@ public sealed class PlaybackReportingReader
             await TopUsersAsync(connection, 30, cancellationToken).ConfigureAwait(false),
             await PlaybackMethodsAsync(connection, 30, cancellationToken).ConfigureAwait(false),
             await CountsAsync(connection, "COALESCE(NULLIF(ClientName, ''), NULLIF(DeviceName, ''), 'Unknown')", 30, 6, cancellationToken).ConfigureAwait(false),
-            await ActivityAsync(connection, 30, cancellationToken).ConfigureAwait(false));
+            await ActivityAsync(connection, 30, cancellationToken).ConfigureAwait(false),
+            await PersonalAnalyticsAsync(connection, cancellationToken).ConfigureAwait(false));
     }
 
     private static string SessionCte(string where = "") => $$"""
@@ -234,6 +235,40 @@ public sealed class PlaybackReportingReader
         return result.Values.OrderBy(x => x.Date).ToList();
     }
 
+    private static async Task<IReadOnlyDictionary<string, PersonalAnalytics>> PersonalAnalyticsAsync(
+        SqliteConnection db,
+        CancellationToken token)
+    {
+        await using var command = db.CreateCommand();
+        command.CommandText = SessionCte() + """
+            SELECT REPLACE(LOWER(UserId), '-', ''),
+                   COALESCE(SUM(CASE WHEN DateCreated >= $since30 AND ItemType = 'Movie' THEN NewPlay ELSE 0 END), 0),
+                   COALESCE(SUM(CASE WHEN DateCreated >= $since30 AND ItemType = 'Episode' THEN NewPlay ELSE 0 END), 0),
+                   COALESCE(SUM(CASE WHEN DateCreated >= $since30 THEN PlayDuration ELSE 0 END), 0),
+                   COALESCE(SUM(CASE WHEN DateCreated >= $since365 AND ItemType = 'Movie' THEN NewPlay ELSE 0 END), 0),
+                   COALESCE(SUM(CASE WHEN DateCreated >= $since365 AND ItemType = 'Episode' THEN NewPlay ELSE 0 END), 0),
+                   COALESCE(SUM(CASE WHEN DateCreated >= $since365 THEN PlayDuration ELSE 0 END), 0),
+                   COALESCE(SUM(CASE WHEN ItemType = 'Movie' THEN NewPlay ELSE 0 END), 0),
+                   COALESCE(SUM(CASE WHEN ItemType = 'Episode' THEN NewPlay ELSE 0 END), 0),
+                   COALESCE(SUM(PlayDuration), 0)
+            FROM sessions
+            GROUP BY REPLACE(LOWER(UserId), '-', '')
+            """;
+        command.Parameters.AddWithValue("$since30", Since(30));
+        command.Parameters.AddWithValue("$since365", Since(365));
+        var result = new Dictionary<string, PersonalAnalytics>(StringComparer.OrdinalIgnoreCase);
+        await using var rows = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
+        while (await rows.ReadAsync(token).ConfigureAwait(false))
+        {
+            result[rows.GetString(0)] = new PersonalAnalytics(
+                new PersonalPeriod(rows.GetInt32(1), rows.GetInt32(2), rows.GetInt64(3)),
+                new PersonalPeriod(rows.GetInt32(4), rows.GetInt32(5), rows.GetInt64(6)),
+                new PersonalPeriod(rows.GetInt32(7), rows.GetInt32(8), rows.GetInt64(9)));
+        }
+
+        return result;
+    }
+
     private static async Task<IReadOnlyList<RankingItem>> ReadRankingsAsync(SqliteCommand command, CancellationToken token)
     {
         var result = new List<RankingItem>();
@@ -274,4 +309,5 @@ public sealed record PlaybackAnalytics(
     IReadOnlyList<RankingItem> TopUsers30,
     IReadOnlyList<NameCount> PlaybackMethods,
     IReadOnlyList<NameCount> Clients,
-    IReadOnlyList<DailyActivity> Activity);
+    IReadOnlyList<DailyActivity> Activity,
+    IReadOnlyDictionary<string, PersonalAnalytics> Personal);

@@ -24,6 +24,36 @@ public sealed class AnalyticsController : ControllerBase
             : Ok(snapshot);
     }
 
+    [HttpGet("Personal")]
+    [Authorize]
+    [ProducesResponseType(typeof(PersonalAnalytics), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PersonalAnalytics>> Personal(CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirst("Jellyfin-UserId")?.Value;
+        if (string.IsNullOrWhiteSpace(userId)) return Forbid();
+        var personal = await _snapshots.ReadPersonalAsync(userId, cancellationToken).ConfigureAwait(false);
+        return personal is null
+            ? StatusCode(StatusCodes.Status503ServiceUnavailable, new { Error = "Personal snapshot is being prepared." })
+            : Ok(personal);
+    }
+
+    [HttpGet("User")]
+    [AllowAnonymous]
+    [Produces("text/html")]
+    public IActionResult UserPage()
+    {
+        Response.Headers.CacheControl = "no-cache";
+        var name = $"{typeof(Plugin).Namespace}.Web.jelana.html";
+        using var stream = typeof(Plugin).Assembly.GetManifestResourceStream(name)
+            ?? throw new InvalidOperationException($"Missing resource {name}.");
+        using var reader = new StreamReader(stream);
+        var html = reader.ReadToEnd().Replace(
+            "src=\"/Jelana/",
+            $"src=\"{Request.PathBase}/Jelana/",
+            StringComparison.Ordinal);
+        return Content(html, "text/html; charset=utf-8");
+    }
+
     [HttpGet("Client.css")]
     [AllowAnonymous]
     public IActionResult Css()

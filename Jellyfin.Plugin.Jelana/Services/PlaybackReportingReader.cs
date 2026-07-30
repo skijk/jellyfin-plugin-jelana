@@ -447,28 +447,40 @@ public sealed class PlaybackReportingReader
     {
         await using var command = db.CreateCommand();
         command.CommandText = SessionCte("WHERE DateCreated >= $since14 AND ItemType IN ('Movie', 'Episode')") + """
-            SELECT ItemId, ItemName, ItemType, UserId,
-                   SUM(CASE WHEN DateCreated >= $since7 THEN NewPlay ELSE 0 END),
-                   SUM(CASE WHEN DateCreated < $since7 THEN NewPlay ELSE 0 END)
+            SELECT ItemId, ItemName, ItemType, UserId, date(DateCreated),
+                   CASE WHEN DateCreated >= $since7 THEN 1 ELSE 0 END,
+                   SUM(NewPlay)
             FROM sessions
-            GROUP BY ItemId, ItemName, ItemType, UserId
+            GROUP BY ItemId, ItemName, ItemType, UserId, date(DateCreated),
+                     CASE WHEN DateCreated >= $since7 THEN 1 ELSE 0 END
             """;
         command.Parameters.AddWithValue("$since14", Since(14));
         command.Parameters.AddWithValue("$since7", Since(7));
-        var items = new Dictionary<string, (string Id, string Name, string Type, int Current, int Previous, HashSet<string> Users)>();
+        var items = new Dictionary<string, TrendAggregate>();
+        var seriesByEpisode = new Dictionary<string, (string Id, string Name)>();
         await using var rows = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
         while (await rows.ReadAsync(token).ConfigureAwait(false))
         {
             var itemId = rows.GetString(0);
             var itemName = rows.GetString(1);
             var type = rows.GetString(2);
-            var current = rows.GetInt32(4);
-            var previous = rows.GetInt32(5);
+            var userId = rows.GetString(3);
+            var day = rows.GetString(4);
+            var isCurrent = rows.GetInt32(5) == 1;
+            var plays = rows.GetInt32(6);
             if (type == "Episode")
             {
-                var episode = Guid.TryParse(itemId, out var id) ? _library.GetItemById(id) as Episode : null;
-                itemId = episode?.Series?.Id.ToString("N") ?? string.Empty;
-                itemName = episode?.Series?.Name ?? FallbackSeriesName(itemName);
+                if (!seriesByEpisode.TryGetValue(itemId, out var series))
+                {
+                    var episode = Guid.TryParse(itemId, out var id) ? _library.GetItemById(id) as Episode : null;
+                    series = (
+                        episode?.Series?.Id.ToString("N") ?? string.Empty,
+                        episode?.Series?.Name ?? FallbackSeriesName(itemName));
+                    seriesByEpisode[itemId] = series;
+                }
+
+                itemId = series.Id;
+                itemName = series.Name;
                 type = "Series";
             }
             else
@@ -479,22 +491,74 @@ public sealed class PlaybackReportingReader
             var key = itemId.Length > 0 ? $"{type}:{itemId}" : $"{type}:{itemName.ToLowerInvariant()}";
             if (!items.TryGetValue(key, out var aggregate))
             {
-                aggregate = (itemId, itemName, type, 0, 0, new HashSet<string>());
+                aggregate = new TrendAggregate(itemId, itemName, type);
+                items[key] = aggregate;
             }
 
-            aggregate.Current += current;
-            aggregate.Previous += previous;
-            if (current > 0) aggregate.Users.Add(rows.GetString(3));
-            items[key] = aggregate;
+            aggregate.Add(userId, day, plays, isCurrent);
         }
 
         return items.Values
-            .Where(x => x.Current > 0)
-            .OrderByDescending(x => x.Current - x.Previous)
-            .ThenByDescending(x => x.Current)
+            .Where(x => x.UniqueViewers >= 2)
+            .OrderByDescending(x => x.UniqueViewers)
+            .ThenByDescending(x => x.Score)
+            .ThenByDescending(x => x.CurrentActivity - x.PreviousActivity)
+            .ThenByDescending(x => x.CurrentActivity)
             .Take(16)
-            .Select(x => new TrendingItem(x.Id, x.Name, x.Type, x.Current, x.Previous, x.Users.Count))
+            .Select(x => new TrendingItem(
+                x.Id,
+                x.Name,
+                x.Type,
+                x.CurrentActivity,
+                x.PreviousActivity,
+                x.UniqueViewers,
+                x.ActiveDays))
             .ToList();
+    }
+
+    private sealed class TrendAggregate
+    {
+        private readonly Dictionary<(string UserId, string Day), int> _current = new();
+        private readonly Dictionary<(string UserId, string Day), int> _previous = new();
+
+        public TrendAggregate(string id, string name, string type)
+        {
+            Id = id;
+            Name = name;
+            Type = type;
+        }
+
+        public string Id { get; }
+
+        public string Name { get; }
+
+        public string Type { get; }
+
+        public int CurrentActivity => Activity(_current);
+
+        public int PreviousActivity => Activity(_previous);
+
+        public int UniqueViewers => _current.Keys.Select(key => key.UserId).Distinct().Count();
+
+        public int ActiveDays => _current.Keys.Select(key => key.Day).Distinct().Count();
+
+        public int Score =>
+            (ActiveDays * 2)
+            + CurrentActivity
+            + (Math.Min(10, Math.Max(0, CurrentActivity - PreviousActivity)) * 2);
+
+        public void Add(string userId, string day, int plays, bool current)
+        {
+            var periods = current ? _current : _previous;
+            var key = (userId, day);
+            periods[key] = periods.GetValueOrDefault(key) + plays;
+        }
+
+        private int Activity(Dictionary<(string UserId, string Day), int> periods)
+        {
+            var dailyCap = Type == "Series" ? 2 : 1;
+            return periods.Values.Sum(value => Math.Min(dailyCap, value));
+        }
     }
 
     private static async Task<IReadOnlyList<RankingItem>> ReadRankingsAsync(SqliteCommand command, CancellationToken token)

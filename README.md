@@ -24,14 +24,41 @@ Playback counts use the same 30-minute session-gap CTE as Jelana. Playback
 summaries, 7/30-day movie and series rankings, user rankings, daily activity,
 playback methods and clients are calculated from Playback Reporting.
 
+Trending is intentionally different from Most played. It requires at least two
+unique viewers and ranks titles primarily by viewer count. Active days and
+week-over-week growth only break ties, and series activity is capped per viewer
+and day so one person's episode binge cannot dominate the list. Most played
+rankings remain volume-based.
+
 There is deliberately no HTTP endpoint that rebuilds statistics. Refreshes only
 run through Jellyfin's scheduled-task system, ensuring that opening or reloading
 the Statistics page cannot touch Playback Reporting or scan the media library.
 
-## Requirements
+## Dependencies
 
-- Jellyfin 10.11.x
-- Playback Reporting plugin
+| Component | Status | Used for |
+| --- | --- | --- |
+| Jellyfin Server 10.11.11 | Required | Supported server and plugin ABI |
+| [Playback Reporting](https://github.com/jellyfin/jellyfin-plugin-playbackreporting) | Required | Historical playback source read only by the scheduled cache job |
+| JS Injector | Optional | Adds an Analytics link to the regular user menu |
+| [JellySpotlight](https://github.com/skijk/jellyfin-plugin-jellyspotlight) | Optional consumer | Can display Jelana's cached Trending and Popular new arrivals data |
+
+Jelana does not require File Transformation, JellySpotlight, JellyBulletin,
+Radarr Watch or the old standalone PHP application.
+
+## Installation
+
+1. Install Playback Reporting from the official Jellyfin plugin catalog and
+   allow it to begin recording playback.
+2. Add the Jelana repository:
+
+   ```text
+   https://raw.githubusercontent.com/skijk/jellyfin-plugin-jelana-repository/main/manifest.json
+   ```
+
+3. Install Jelana and restart Jellyfin.
+4. Run **Dashboard → Scheduled Tasks → Jelana → Refresh Jelana analytics
+   snapshot**, or wait for the startup/hourly refresh.
 
 ## Build
 
@@ -59,7 +86,7 @@ to JS Injector:
         if (document.getElementById('jelana-menu-loader')) return;
         const script = document.createElement('script');
         script.id = 'jelana-menu-loader';
-        script.src = ApiClient.getUrl('Jelana/Menu.js', { version: '0.1.19.0' });
+        script.src = ApiClient.getUrl('Jelana/Menu.js', { version: '0.1.21.0' });
         document.head.appendChild(script);
     };
 

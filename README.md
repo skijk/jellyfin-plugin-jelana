@@ -24,11 +24,12 @@ Playback counts use the same 30-minute session-gap CTE as Jelana. Playback
 summaries, 7/30-day movie and series rankings, user rankings, daily activity,
 playback methods and clients are calculated from Playback Reporting.
 
-Trending is intentionally different from Most played. It requires at least two
-unique viewers and ranks titles primarily by viewer count. Active days and
-week-over-week growth only break ties, and series activity is capped per viewer
-and day so one person's episode binge cannot dominate the list. Most played
-rankings remain volume-based.
+Trending is intentionally different from Most played. It ranks titles primarily
+by unique viewer count, so titles watched by multiple people stay ahead of
+single-viewer activity. Active days and week-over-week growth only break ties,
+and series activity is capped per viewer and day so one person's episode binge
+cannot dominate the list. Single-viewer titles fill otherwise empty shelf
+positions. Most played rankings remain volume-based.
 
 There is deliberately no HTTP endpoint that rebuilds statistics. Refreshes only
 run through Jellyfin's scheduled-task system, ensuring that opening or reloading

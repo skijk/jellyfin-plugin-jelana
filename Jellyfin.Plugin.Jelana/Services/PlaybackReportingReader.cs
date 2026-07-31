@@ -499,7 +499,7 @@ public sealed class PlaybackReportingReader
         }
 
         return items.Values
-            .Where(x => x.UniqueViewers >= 2)
+            .Where(x => x.CurrentActivity > 0)
             .OrderByDescending(x => x.UniqueViewers)
             .ThenByDescending(x => x.Score)
             .ThenByDescending(x => x.CurrentActivity - x.PreviousActivity)

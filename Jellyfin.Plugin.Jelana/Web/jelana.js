@@ -1,7 +1,7 @@
 (() => {
     'use strict';
     const STYLE_ID = 'jelana-dashboard-styles';
-    const VERSION = '0.1.22.0';
+    const VERSION = '0.1.24.0';
     const embeddedInJellyfin = typeof window.ApiClient !== 'undefined';
     const basePath = embeddedInJellyfin
         ? ''
@@ -251,22 +251,16 @@
             list('#jelanaClients', pick(data, 'clients'), row => String(pick(row, 'count')));
             list('#jelanaMethods', pick(data, 'playbackMethods'), row => String(pick(row, 'count')));
             const counts = pick(data, 'counts');
-            facts('#jelanaLibrary', [
-                ['Movies', pick(counts, 'movies')],
-                ['Series', pick(counts, 'series')],
-                ['Episodes', pick(counts, 'episodes')],
-                ['Users', pick(counts, 'users')],
-                ['Storage', bytes(pick(pick(data, 'storage'), 'total'))]
-            ]);
+            page.querySelector('#jelanaLibraryMovies').textContent = String(pick(counts, 'movies'));
+            page.querySelector('#jelanaLibrarySeries').textContent = String(pick(counts, 'series'));
+            page.querySelector('#jelanaLibraryEpisodes').textContent = String(pick(counts, 'episodes'));
+            page.querySelector('#jelanaLibraryUsers').textContent = String(pick(counts, 'users'));
+            page.querySelector('#jelanaLibraryStorage').textContent = bytes(pick(pick(data, 'storage'), 'total'));
             const added = pick(data, 'newItems');
-            facts('#jelanaNew7', [
-                ['Movies', pick(added, 'movies7')],
-                ['Series', pick(added, 'series7')]
-            ]);
-            facts('#jelanaNew30', [
-                ['Movies', pick(added, 'movies30')],
-                ['Series', pick(added, 'series30')]
-            ]);
+            page.querySelector('#jelanaNewMovies7').textContent = String(pick(added, 'movies7'));
+            page.querySelector('#jelanaNewSeries7').textContent = String(pick(added, 'series7'));
+            page.querySelector('#jelanaNewMovies30').textContent = String(pick(added, 'movies30'));
+            page.querySelector('#jelanaNewSeries30').textContent = String(pick(added, 'series30'));
             const profile = pick(data, 'mediaProfile');
             list('#jelanaVideo', dictionaryRows(pick(profile, 'video')), row => String(row.count));
             list('#jelanaResolution', dictionaryRows(pick(profile, 'resolution')), row => String(row.count));
@@ -294,7 +288,7 @@
                 box.append(span, strong, delta);
                 return box;
             }));
-            page.querySelector('#jelanaTrending').replaceChildren(...(pick(data, 'trending') || []).map((row, index) => {
+            page.querySelector('#jelanaTrending').replaceChildren(...(pick(data, 'trending') || []).slice(0, 8).map((row, index) => {
                 const item = document.createElement('li');
                 const link = document.createElement('a');
                 link.className = 'jelana-ranking-link';

@@ -22,6 +22,37 @@
             </header>
             <div id="jelanaLoading" class="jelana-panel">Loading the latest hourly snapshot…</div>
             <main id="jelanaContent" hidden>
+                <section class="jelana-panel jelana-summary-panel jelana-tab-panel" data-jelana-tabs="new">
+                    <div class="jelana-panel-heading">
+                        <h2>Library · Server-wide</h2>
+                        <div class="jelana-summary-new-heading">
+                            <span>New in the library</span>
+                            <div class="jelana-tabs" role="tablist" aria-label="Period for new content">
+                                <button type="button" class="is-active" data-tab="new7">7 days</button>
+                                <button type="button" data-tab="new30">30 days</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="jelana-summary-facts">
+                        <div><span>Movies</span><strong id="jelanaLibraryMovies">–</strong></div>
+                        <div><span>Series</span><strong id="jelanaLibrarySeries">–</strong></div>
+                        <div><span>Episodes</span><strong id="jelanaLibraryEpisodes">–</strong></div>
+                        <div><span>Users</span><strong id="jelanaLibraryUsers">–</strong></div>
+                        <div><span>Storage</span><strong id="jelanaLibraryStorage">–</strong></div>
+                        <div class="jelana-summary-new" data-tab-content="new7">
+                            <span>New movies</span><strong id="jelanaNewMovies7">–</strong>
+                        </div>
+                        <div class="jelana-summary-new" data-tab-content="new7">
+                            <span>New series</span><strong id="jelanaNewSeries7">–</strong>
+                        </div>
+                        <div class="jelana-summary-new" data-tab-content="new30" hidden>
+                            <span>New movies</span><strong id="jelanaNewMovies30">–</strong>
+                        </div>
+                        <div class="jelana-summary-new" data-tab-content="new30" hidden>
+                            <span>New series</span><strong id="jelanaNewSeries30">–</strong>
+                        </div>
+                    </div>
+                </section>
                 <section class="jelana-overview">
                     <article class="jelana-panel jelana-metric jelana-tab-panel" data-jelana-tabs="plays">
                         <div class="jelana-panel-heading">
@@ -87,23 +118,6 @@
                     <h2>Hot right now · Server-wide</h2>
                     <p class="jelana-muted jelana-caption">Ranked by unique viewers, active days and growth over the previous week. Episode binges are capped.</p>
                     <ol id="jelanaTrending"></ol>
-                </section>
-                <section class="jelana-grid">
-                    <article class="jelana-panel">
-                        <h2>Library · Server-wide</h2>
-                        <div id="jelanaLibrary" class="jelana-facts"></div>
-                    </article>
-                    <article class="jelana-panel jelana-tab-panel" data-jelana-tabs="new">
-                        <div class="jelana-panel-heading">
-                            <h2>New in the library · Server-wide</h2>
-                            <div class="jelana-tabs" role="tablist" aria-label="Period for new content">
-                                <button type="button" class="is-active" data-tab="7">7 days</button>
-                                <button type="button" data-tab="30">30 days</button>
-                            </div>
-                        </div>
-                        <div id="jelanaNew7" class="jelana-facts" data-tab-content="7"></div>
-                        <div id="jelanaNew30" class="jelana-facts" data-tab-content="30" hidden></div>
-                    </article>
                 </section>
                 <section class="jelana-grid">
                     <article class="jelana-panel jelana-tab-panel" data-jelana-tabs="movies">
@@ -175,7 +189,7 @@
             </main>
         </div>
     </div>
-<script src="/Jelana/Client.js?v=0.1.22.0"></script>
+<script src="/Jelana/Client.js?v=0.1.24.0"></script>
 </div>
 </body>
 </html>

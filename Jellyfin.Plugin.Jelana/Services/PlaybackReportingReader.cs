@@ -264,7 +264,7 @@ public sealed class PlaybackReportingReader
         return result.Values.OrderBy(x => x.Date).ToList();
     }
 
-    private static async Task<IReadOnlyDictionary<string, PersonalAnalytics>> PersonalAnalyticsAsync(
+    private async Task<IReadOnlyDictionary<string, PersonalAnalytics>> PersonalAnalyticsAsync(
         SqliteConnection db,
         CancellationToken token)
     {
@@ -295,11 +295,165 @@ public sealed class PlaybackReportingReader
                 new PersonalPeriod(rows.GetInt32(7), rows.GetInt32(8), rows.GetInt64(9)),
                 new ViewingHabits("–", "–", 0, 0, 0),
                 new ViewingHabits("–", "–", 0, 0, 0),
-                new ViewingHabits("–", "–", 0, 0, 0));
+                new ViewingHabits("–", "–", 0, 0, 0),
+                EmptyInsights(),
+                EmptyInsights(),
+                EmptyInsights());
         }
 
         await AddPersonalHabitsAsync(db, result, token).ConfigureAwait(false);
+        await AddPersonalInsightsAsync(db, result, token).ConfigureAwait(false);
         return result;
+    }
+
+    private static PersonalInsights EmptyInsights() => new(0, 0, 0, 0, null, null, null);
+
+    private async Task AddPersonalInsightsAsync(
+        SqliteConnection db,
+        Dictionary<string, PersonalAnalytics> result,
+        CancellationToken token)
+    {
+        var insights30 = await CalculateInsightsAsync(db, 30, token).ConfigureAwait(false);
+        var insights365 = await CalculateInsightsAsync(db, 365, token).ConfigureAwait(false);
+        var insightsAll = await CalculateInsightsAsync(db, null, token).ConfigureAwait(false);
+
+        foreach (var (id, analytics) in result.ToList())
+        {
+            result[id] = analytics with
+            {
+                Insights30Days = insights30.GetValueOrDefault(id) ?? EmptyInsights(),
+                InsightsLastYear = insights365.GetValueOrDefault(id) ?? EmptyInsights(),
+                InsightsAllTime = insightsAll.GetValueOrDefault(id) ?? EmptyInsights()
+            };
+        }
+    }
+
+    private async Task<Dictionary<string, PersonalInsights>> CalculateInsightsAsync(
+        SqliteConnection db,
+        int? days,
+        CancellationToken token)
+    {
+        var where = days.HasValue
+            ? "WHERE DateCreated >= $since AND ItemType IN ('Movie', 'Episode')"
+            : "WHERE ItemType IN ('Movie', 'Episode')";
+        await using var command = db.CreateCommand();
+        command.CommandText = SessionCte(where) + """
+            SELECT REPLACE(LOWER(UserId), '-', ''), date(DateCreated), ItemId, ItemName, ItemType,
+                   SUM(NewPlay), SUM(PlayDuration)
+            FROM sessions
+            GROUP BY REPLACE(LOWER(UserId), '-', ''), date(DateCreated), ItemId, ItemName, ItemType
+            """;
+        if (days.HasValue) command.Parameters.AddWithValue("$since", Since(days.Value));
+
+        var users = new Dictionary<string, PersonalInsightAccumulator>(StringComparer.OrdinalIgnoreCase);
+        await using var rows = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
+        while (await rows.ReadAsync(token).ConfigureAwait(false))
+        {
+            var userId = rows.GetString(0);
+            if (!users.TryGetValue(userId, out var user))
+            {
+                user = new PersonalInsightAccumulator();
+                users[userId] = user;
+            }
+
+            var date = DateOnly.ParseExact(rows.GetString(1), "yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var itemId = rows.GetString(2);
+            var itemName = rows.GetString(3);
+            var itemType = rows.GetString(4);
+            var plays = rows.GetInt32(5);
+            var duration = rows.GetInt64(6);
+            var item = Guid.TryParse(itemId, out var id) ? _library.GetItemById(id) : null;
+
+            user.ActiveDates.Add(date);
+            user.DurationSeconds += duration;
+            if (itemType == "Episode")
+            {
+                var episode = item as Episode;
+                var seriesId = episode?.Series?.Id.ToString("N") ?? string.Empty;
+                var seriesName = episode?.Series?.Name ?? FallbackSeriesName(itemName);
+                var seriesKey = seriesId.Length > 0 ? seriesId : seriesName.ToLowerInvariant();
+                user.UniqueTitles.Add("series:" + seriesKey);
+                AddFavorite(user.Series, seriesKey, seriesId, seriesName, plays, duration);
+                AddGenres(user.Genres, episode?.Series?.Genres, duration);
+            }
+            else
+            {
+                var movieKey = itemId.Length > 0 ? itemId : itemName.ToLowerInvariant();
+                user.UniqueTitles.Add("movie:" + movieKey);
+                AddFavorite(user.Movies, movieKey, itemId, itemName, plays, duration);
+                AddGenres(user.Genres, item?.Genres, duration);
+            }
+        }
+
+        return users.ToDictionary(
+            x => x.Key,
+            x => CreateInsights(x.Value),
+            StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static void AddFavorite(
+        Dictionary<string, PersonalFavorite> values,
+        string key,
+        string id,
+        string name,
+        int plays,
+        long duration)
+    {
+        var current = values.GetValueOrDefault(key) ?? new PersonalFavorite(id, name, 0, 0);
+        values[key] = current with
+        {
+            Plays = current.Plays + plays,
+            DurationSeconds = current.DurationSeconds + duration
+        };
+    }
+
+    private static void AddGenres(Dictionary<string, long> values, IReadOnlyList<string>? genres, long duration)
+    {
+        if (genres is null) return;
+        foreach (var genre in genres.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            values[genre] = values.GetValueOrDefault(genre) + duration;
+        }
+    }
+
+    private static PersonalInsights CreateInsights(PersonalInsightAccumulator value)
+    {
+        var dates = value.ActiveDates.Order().ToList();
+        var longestStreak = dates.Count == 0 ? 0 : 1;
+        var currentStreak = longestStreak;
+        for (var index = 1; index < dates.Count; index++)
+        {
+            currentStreak = dates[index].DayNumber == dates[index - 1].DayNumber + 1 ? currentStreak + 1 : 1;
+            longestStreak = Math.Max(longestStreak, currentStreak);
+        }
+
+        PersonalFavorite? favorite(IEnumerable<PersonalFavorite> values) => values
+            .OrderByDescending(x => x.Plays)
+            .ThenByDescending(x => x.DurationSeconds)
+            .ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault();
+        var genre = value.Genres
+            .OrderByDescending(x => x.Value)
+            .ThenBy(x => x.Key, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault();
+        return new PersonalInsights(
+            dates.Count,
+            value.UniqueTitles.Count,
+            dates.Count == 0 ? 0 : value.DurationSeconds / dates.Count,
+            longestStreak,
+            favorite(value.Movies.Values),
+            favorite(value.Series.Values),
+            genre.Key is null ? null : new PersonalGenre(genre.Key, genre.Value));
+    }
+
+    private sealed class PersonalInsightAccumulator
+    {
+        public HashSet<DateOnly> ActiveDates { get; } = [];
+        public HashSet<string> UniqueTitles { get; } = new(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, PersonalFavorite> Movies { get; } = new(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, PersonalFavorite> Series { get; } = new(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, long> Genres { get; } = new(StringComparer.OrdinalIgnoreCase);
+        public long DurationSeconds { get; set; }
     }
 
     private static async Task AddPersonalHabitsAsync(

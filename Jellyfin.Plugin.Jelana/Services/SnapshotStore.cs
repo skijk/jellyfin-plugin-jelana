@@ -41,7 +41,10 @@ public sealed class SnapshotStore
                 new PersonalPeriod(0, 0, 0),
                 new ViewingHabits("–", "–", 0, 0, 0),
                 new ViewingHabits("–", "–", 0, 0, 0),
-                new ViewingHabits("–", "–", 0, 0, 0));
+                new ViewingHabits("–", "–", 0, 0, 0),
+                new PersonalInsights(0, 0, 0, 0, null, null, null),
+                new PersonalInsights(0, 0, 0, 0, null, null, null),
+                new PersonalInsights(0, 0, 0, 0, null, null, null));
     }
 
     public async Task<AnalyticsSnapshot> RefreshAsync(CancellationToken cancellationToken)

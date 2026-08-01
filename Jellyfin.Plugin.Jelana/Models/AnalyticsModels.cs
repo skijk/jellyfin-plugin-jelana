@@ -17,6 +17,16 @@ public sealed record NameCount(string Name, int Count);
 public sealed record DailyActivity(DateOnly Date, int Plays, long DurationSeconds);
 public sealed record PlaybackSummary(int Plays, long DurationSeconds);
 public sealed record PersonalPeriod(int Movies, int Episodes, long DurationSeconds);
+public sealed record PersonalFavorite(string Id, string Name, int Plays, long DurationSeconds);
+public sealed record PersonalGenre(string Name, long DurationSeconds);
+public sealed record PersonalInsights(
+    int ActiveDays,
+    int UniqueTitles,
+    long AverageWatchDaySeconds,
+    int LongestStreakDays,
+    PersonalFavorite? MostWatchedMovie,
+    PersonalFavorite? MostWatchedSeries,
+    PersonalGenre? MostWatchedGenre);
 public sealed record ViewingHabits(
     string FavoriteWeekday,
     string FavoriteTimeOfDay,
@@ -29,7 +39,10 @@ public sealed record PersonalAnalytics(
     PersonalPeriod AllTime,
     ViewingHabits Habits30Days,
     ViewingHabits HabitsLastYear,
-    ViewingHabits HabitsAllTime);
+    ViewingHabits HabitsAllTime,
+    PersonalInsights Insights30Days,
+    PersonalInsights InsightsLastYear,
+    PersonalInsights InsightsAllTime);
 public sealed record MonthlyTrend(PlaybackSummary Current, PlaybackSummary Previous);
 public sealed record TrendingItem(
     string Id,

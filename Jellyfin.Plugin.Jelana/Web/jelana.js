@@ -1,7 +1,7 @@
 (() => {
     'use strict';
     const STYLE_ID = 'jelana-dashboard-styles';
-    const VERSION = '0.1.24.0';
+    const VERSION = '0.1.25.0';
     const embeddedInJellyfin = typeof window.ApiClient !== 'undefined';
     const basePath = embeddedInJellyfin
         ? ''
@@ -193,20 +193,40 @@
         return Math.round((current - previous) * 100 / previous);
     };
     const signedPercent = value => `${value > 0 ? '+' : ''}${value}%`;
-    const personalFacts = (id, period) => facts(id, [
+    const personalFacts = (id, period, insights) => facts(id, [
         ['Movie plays', pick(period, 'movies')],
         ['Episode plays', pick(period, 'episodes')],
-        ['Watch time', duration(pick(period, 'durationSeconds'))]
+        ['Watch time', duration(pick(period, 'durationSeconds'))],
+        ['Active days', pick(insights, 'activeDays')],
+        ['Unique titles', pick(insights, 'uniqueTitles')],
+        ['Average watch day', duration(pick(insights, 'averageWatchDaySeconds'))],
+        ['Longest streak', `${pick(insights, 'longestStreakDays') || 0} days`]
     ]);
+    const renderPersonalHighlight = (value, targetId, metaId, meta) => {
+        const target = page.querySelector(targetId);
+        target.replaceChildren();
+        const name = pick(value, 'name') || '–';
+        const id = pick(value, 'id');
+        if (id) {
+            const link = document.createElement('a');
+            link.href = detailUrl(id);
+            link.textContent = name;
+            target.append(link);
+        } else {
+            target.textContent = name;
+        }
+        page.querySelector(metaId).textContent = value ? meta(value) : '';
+    };
     const renderPersonalHabits = selected => {
         if (!loadedPersonal) return;
         const periods = {
-            personal30: ['habits30Days', 'Split over the last 30 days'],
-            personal365: ['habitsLastYear', 'Split over the last year'],
-            personalAll: ['habitsAllTime', 'All-time split']
+            personal30: ['habits30Days', 'insights30Days', 'Split over the last 30 days'],
+            personal365: ['habitsLastYear', 'insightsLastYear', 'Split over the last year'],
+            personalAll: ['habitsAllTime', 'insightsAllTime', 'All-time split']
         };
-        const [property, caption] = periods[selected] || periods.personal30;
+        const [property, insightsProperty, caption] = periods[selected] || periods.personal30;
         const habits = pick(loadedPersonal, property);
+        const insights = pick(loadedPersonal, insightsProperty);
         page.querySelector('#jelanaFavoriteDay').textContent = pick(habits, 'favoriteWeekday');
         page.querySelector('#jelanaFavoriteTime').textContent = pick(habits, 'favoriteTimeOfDay');
         page.querySelector('#jelanaLongestSession').textContent =
@@ -217,6 +237,21 @@
         page.querySelector('#jelanaEpisodePercent').textContent = `${episodePercent}%`;
         page.querySelector('#jelanaSplitPeriod').textContent = caption;
         page.querySelector('#jelanaMediaDonut').style.setProperty('--movie-share', `${moviePercent}%`);
+        renderPersonalHighlight(
+            pick(insights, 'mostWatchedMovie'),
+            '#jelanaMostWatchedMovie',
+            '#jelanaMostWatchedMovieMeta',
+            value => `${pick(value, 'plays')} plays · ${duration(pick(value, 'durationSeconds'))}`);
+        renderPersonalHighlight(
+            pick(insights, 'mostWatchedSeries'),
+            '#jelanaMostWatchedSeries',
+            '#jelanaMostWatchedSeriesMeta',
+            value => `${pick(value, 'plays')} episode plays · ${duration(pick(value, 'durationSeconds'))}`);
+        renderPersonalHighlight(
+            pick(insights, 'mostWatchedGenre'),
+            '#jelanaMostWatchedGenre',
+            '#jelanaMostWatchedGenreMeta',
+            value => duration(pick(value, 'durationSeconds')));
     };
     async function load() {
         const loading = page.querySelector('#jelanaLoading');
@@ -354,9 +389,9 @@
             page.querySelector('#jelanaContent').hidden = false;
             try {
                 const personal = await getPersonal();
-                personalFacts('#jelanaPersonal30', pick(personal, 'last30Days'));
-                personalFacts('#jelanaPersonal365', pick(personal, 'lastYear'));
-                personalFacts('#jelanaPersonalAll', pick(personal, 'allTime'));
+                personalFacts('#jelanaPersonal30', pick(personal, 'last30Days'), pick(personal, 'insights30Days'));
+                personalFacts('#jelanaPersonal365', pick(personal, 'lastYear'), pick(personal, 'insightsLastYear'));
+                personalFacts('#jelanaPersonalAll', pick(personal, 'allTime'), pick(personal, 'insightsAllTime'));
                 loadedPersonal = personal;
                 const selected = page.querySelector('[data-jelana-tabs="personal"] [data-tab].is-active')?.dataset.tab;
                 renderPersonalHabits(selected || 'personal30');

@@ -39,13 +39,13 @@ the Statistics page cannot touch Playback Reporting or scan the media library.
 
 | Component | Status | Used for |
 | --- | --- | --- |
-| Jellyfin Server 10.11.11 | Required | Supported server and plugin ABI |
+| Jellyfin Server 12.0 | Required | Supported server and plugin ABI |
 | [Playback Reporting](https://github.com/jellyfin/jellyfin-plugin-playbackreporting) | Required | Historical playback source read only by the scheduled cache job |
 | JS Injector | Optional | Adds an Analytics link to the regular user menu |
 | [JellySpotlight](https://github.com/skijk/jellyfin-plugin-jellyspotlight) | Optional consumer | Can display Jelana's cached Trending and Popular new arrivals data |
 
 Jelana does not require File Transformation, JellySpotlight, JellyBulletin,
-Radarr Watch or the old standalone PHP application.
+Arr Watch or the old standalone PHP application.
 
 ## Installation
 

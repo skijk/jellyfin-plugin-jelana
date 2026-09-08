@@ -1,6 +1,9 @@
 # Jelana for Jellyfin
 
-A standalone, cache-first analytics plugin for Jellyfin 10.11.x.
+A standalone, cache-first analytics plugin for Jellyfin 12.
+
+> Version 0.2.0.0 and later require Jellyfin 12.0. Jellyfin 10.11
+> installations must use the retained 0.1.x releases.
 
 Jelana is independent from the standalone PHP application and uses Jellyfin's
 Playback Reporting plugin as its history source. The UI only reads an atomically

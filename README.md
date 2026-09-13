@@ -1,9 +1,17 @@
 # Jelana for Jellyfin
 
-A standalone, cache-first analytics plugin for Jellyfin 12.
+A standalone, cache-first analytics plugin for Jellyfin.
 
-> Version 0.2.0.0 and later require Jellyfin 12.0. Jellyfin 10.11
-> installations must use the retained 0.1.x releases.
+## Jellyfin compatibility
+
+| Jellyfin server | Jelana version | Download |
+| --- | --- | --- |
+| Jellyfin 12.0 or later | Jelana 0.2.x | Install the latest release from the repository catalog |
+| Jellyfin 10.11.x | Jelana 0.1.25.0 | [Download Jelana 0.1.25.0 for Jellyfin 10.11](https://github.com/skijk/jellyfin-plugin-jelana-repository/releases/download/0.1.25.0/Jelana_0.1.25.0_jf10.11.11.zip) |
+
+**Jelana 0.2.0.0 and later require Jellyfin 12 and cannot be installed on
+Jellyfin 10.11.** The retained 0.1.25.0 release is the final version for
+Jellyfin 10.11.x.
 
 Jelana is independent from the standalone PHP application and uses Jellyfin's
 Playback Reporting plugin as its history source. The UI only reads an atomically
@@ -44,7 +52,7 @@ the Statistics page cannot touch Playback Reporting or scan the media library.
 | --- | --- | --- |
 | Jellyfin Server 12.0 | Required | Supported server and plugin ABI |
 | [Playback Reporting](https://github.com/jellyfin/jellyfin-plugin-playbackreporting) | Required | Historical playback source read only by the scheduled cache job |
-| JS Injector | Optional | Adds an Analytics link to the regular user menu |
+| JS Injector | Optional | Adds an Analytics link to the Jellyfin 12 user menu, with a legacy Jellyfin 10 menu fallback |
 | [JellySpotlight](https://github.com/skijk/jellyfin-plugin-jellyspotlight) | Optional consumer | Can display Jelana's cached Trending and Popular new arrivals data |
 
 Jelana does not require File Transformation, JellySpotlight, JellyBulletin,
@@ -90,7 +98,7 @@ to JS Injector:
         if (document.getElementById('jelana-menu-loader')) return;
         const script = document.createElement('script');
         script.id = 'jelana-menu-loader';
-        script.src = ApiClient.getUrl('Jelana/Menu.js', { version: '0.1.25.0' });
+        script.src = ApiClient.getUrl('Jelana/Menu.js', { version: '0.2.1.0' });
         document.head.appendChild(script);
     };
 
@@ -98,6 +106,8 @@ to JS Injector:
 })();
 ```
 
-The link opens the authenticated user page at `/Jelana/User`. Menu behavior and
-future compatibility fixes remain bundled in Jelana itself. Enable
+In Jellyfin 12, the link is placed below **Jellyfin Enhanced** when available,
+or immediately above **Dashboard** otherwise. The legacy Jellyfin 10 menu is
+still supported. The link opens the authenticated user page at `/Jelana/User`.
+Menu behavior and future compatibility fixes remain bundled in Jelana itself. Enable
 **Requires Authentication** for this script in JS Injector.

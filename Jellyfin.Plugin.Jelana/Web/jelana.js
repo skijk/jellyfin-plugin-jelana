@@ -1,7 +1,7 @@
 (() => {
     'use strict';
     const STYLE_ID = 'jelana-dashboard-styles';
-    const VERSION = '0.2.4.0';
+    const VERSION = '0.2.5.0';
     const embeddedInJellyfin = typeof window.ApiClient !== 'undefined';
     const basePath = embeddedInJellyfin
         ? ''
@@ -108,6 +108,7 @@
     }
     ensureStyles();
     const page = document.querySelector('#jelanaPage');
+    page.classList.toggle('is-embedded', embeddedInJellyfin);
     const home = page.querySelector('#jelanaHome');
     home.href = embeddedInJellyfin ? '#/home' : `${basePath}/web/#/home`;
     const pluginLogoUrl = getUrl('Jelana/Logo.png', { version: VERSION });
@@ -436,6 +437,7 @@
             }
         }
     }
+    page.addEventListener('viewshow', load);
     page.addEventListener('pageshow', load);
-    if (!window.jQuery || !embeddedInJellyfin) load();
+    load();
 })();

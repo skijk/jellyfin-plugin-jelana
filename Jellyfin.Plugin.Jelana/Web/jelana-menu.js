@@ -12,6 +12,7 @@
         const token = ApiClient.accessToken();
         return token ? `${url}#jelana_token=${encodeURIComponent(token)}` : url;
     };
+    const integratedAnalyticsUrl = () => '#/userpluginsettings.html?pageUrl=/Jelana/User';
 
     const rememberAccessToken = () => {
         if (typeof ApiClient === 'undefined' || typeof ApiClient.accessToken !== 'function') return;
@@ -19,10 +20,10 @@
         if (token) sessionStorage.setItem('jelana_access_token', token);
     };
 
-    const setDestination = (item) => {
+    const setDestination = (item, destination = analyticsUrl) => {
         const link = item.matches('a') ? item : item.querySelector('a');
         if (link) {
-            link.href = analyticsUrl();
+            link.href = destination();
             link.addEventListener('click', rememberAccessToken);
             return;
         }
@@ -31,7 +32,7 @@
         item.tabIndex = 0;
         const open = () => {
             rememberAccessToken();
-            window.location.href = analyticsUrl();
+            window.location.href = destination();
         };
         item.addEventListener('click', open);
         item.addEventListener('keydown', (event) => {
@@ -68,7 +69,7 @@
         item.removeAttribute('id');
         item.dataset.jelanaUserMenu = 'true';
         replaceLabelAndIcon(item, enhanced ? 'Jellyfin Enhanced' : 'Dashboard');
-        setDestination(item);
+        setDestination(item, integratedAnalyticsUrl);
 
         if (enhanced) enhanced.after(item);
         else dashboard.before(item);

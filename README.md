@@ -98,7 +98,7 @@ to JS Injector:
         if (document.getElementById('jelana-menu-loader')) return;
         const script = document.createElement('script');
         script.id = 'jelana-menu-loader';
-        script.src = ApiClient.getUrl('Jelana/Menu.js', { version: '0.2.4.0' });
+        script.src = ApiClient.getUrl('Jelana/Menu.js', { version: '0.2.5.0' });
         document.head.appendChild(script);
     };
 
@@ -107,7 +107,8 @@ to JS Injector:
 ```
 
 In Jellyfin 12, the link is placed below **Jellyfin Enhanced** when available,
-or immediately above **Dashboard** otherwise. The legacy Jellyfin 10 menu is
-still supported. The link opens the authenticated user page at `/Jelana/User`.
+or immediately above **Dashboard** otherwise. Analytics opens inside Jellyfin's
+authenticated web shell, keeping the top navigation and user menu visible. The
+legacy Jellyfin 10 menu and standalone `/Jelana/User` page remain supported.
 Menu behavior and future compatibility fixes remain bundled in Jelana itself. Enable
 **Requires Authentication** for this script in JS Injector.

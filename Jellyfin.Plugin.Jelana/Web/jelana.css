@@ -8,6 +8,7 @@
 .jelana-brand-logo{width:58px;height:58px;object-fit:contain}
 .jelana-header-actions{display:flex;flex-direction:column;align-items:flex-start;gap:.55rem}
 .jelana-header-actions p{margin:0}
+#jelanaPage.is-embedded .jelana-header-actions{display:none}
 .jelana-home-button{display:flex;align-items:center;gap:.55rem;min-height:44px;box-sizing:border-box;padding:.45rem .75rem;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.06);color:inherit!important;text-decoration:none!important;font-weight:600}
 .jelana-home-button:hover,.jelana-home-button:focus-visible{background:rgba(255,255,255,.11)}
 .jelana-home-button img{width:28px;height:28px;object-fit:contain}

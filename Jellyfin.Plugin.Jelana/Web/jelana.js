@@ -1,7 +1,7 @@
 (() => {
     'use strict';
     const STYLE_ID = 'jelana-dashboard-styles';
-    const VERSION = '0.2.2.0';
+    const VERSION = '0.2.3.0';
     const embeddedInJellyfin = typeof window.ApiClient !== 'undefined';
     const basePath = embeddedInJellyfin
         ? ''
@@ -9,8 +9,18 @@
     let accessToken = '';
     if (!embeddedInJellyfin) {
         document.documentElement.classList.add('jelana-standalone');
+        const fragment = new URLSearchParams(location.hash.slice(1));
+        accessToken = fragment.get('jelana_token') || '';
+        if (accessToken) {
+            history.replaceState(null, '', `${location.pathname}${location.search}`);
+            try {
+                sessionStorage.setItem('jelana_access_token', accessToken);
+            } catch {
+                // The token remains available in memory for this page load.
+            }
+        }
         try {
-            accessToken = sessionStorage.getItem('jelana_access_token') || '';
+            accessToken = accessToken || sessionStorage.getItem('jelana_access_token') || '';
         } catch {
             accessToken = '';
         }

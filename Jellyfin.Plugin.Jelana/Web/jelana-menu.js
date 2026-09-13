@@ -4,9 +4,14 @@
     window.__jelanaMenuInstalled = true;
 
     const itemSelector = '[data-jelana-user-menu]';
-    const analyticsUrl = () => typeof ApiClient !== 'undefined'
-        ? ApiClient.getUrl('Jelana/User')
-        : '/Jelana/User';
+    const analyticsUrl = () => {
+        const url = typeof ApiClient !== 'undefined'
+            ? ApiClient.getUrl('Jelana/User')
+            : '/Jelana/User';
+        if (typeof ApiClient === 'undefined' || typeof ApiClient.accessToken !== 'function') return url;
+        const token = ApiClient.accessToken();
+        return token ? `${url}#jelana_token=${encodeURIComponent(token)}` : url;
+    };
 
     const rememberAccessToken = () => {
         if (typeof ApiClient === 'undefined' || typeof ApiClient.accessToken !== 'function') return;

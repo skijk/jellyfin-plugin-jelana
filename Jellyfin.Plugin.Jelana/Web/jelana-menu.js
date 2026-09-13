@@ -8,16 +8,24 @@
         ? ApiClient.getUrl('Jelana/User')
         : '/Jelana/User';
 
+    const rememberAccessToken = () => {
+        if (typeof ApiClient === 'undefined' || typeof ApiClient.accessToken !== 'function') return;
+        const token = ApiClient.accessToken();
+        if (token) sessionStorage.setItem('jelana_access_token', token);
+    };
+
     const setDestination = (item) => {
         const link = item.matches('a') ? item : item.querySelector('a');
         if (link) {
             link.href = analyticsUrl();
+            link.addEventListener('click', rememberAccessToken);
             return;
         }
 
         item.setAttribute('role', 'menuitem');
         item.tabIndex = 0;
         const open = () => {
+            rememberAccessToken();
             window.location.href = analyticsUrl();
         };
         item.addEventListener('click', open);

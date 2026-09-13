@@ -98,7 +98,7 @@ to JS Injector:
         if (document.getElementById('jelana-menu-loader')) return;
         const script = document.createElement('script');
         script.id = 'jelana-menu-loader';
-        script.src = ApiClient.getUrl('Jelana/Menu.js', { version: '0.2.1.0' });
+        script.src = ApiClient.getUrl('Jelana/Menu.js', { version: '0.2.2.0' });
         document.head.appendChild(script);
     };
 

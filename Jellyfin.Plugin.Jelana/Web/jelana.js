@@ -1,7 +1,7 @@
 (() => {
     'use strict';
     const STYLE_ID = 'jelana-dashboard-styles';
-    const VERSION = '0.2.3.0';
+    const VERSION = '0.2.4.0';
     const embeddedInJellyfin = typeof window.ApiClient !== 'undefined';
     const basePath = embeddedInJellyfin
         ? ''
@@ -55,6 +55,12 @@
     const detailUrl = id => embeddedInJellyfin
         ? `#!/details?id=${encodeURIComponent(id)}`
         : `${basePath}/web/#/details?id=${encodeURIComponent(id)}`;
+    const authHeaders = () => accessToken
+        ? {
+            Authorization: `MediaBrowser Token="${accessToken}"`,
+            'X-MediaBrowser-Token': accessToken
+        }
+        : {};
     const getSnapshot = async () => {
         if (embeddedInJellyfin) {
             return ApiClient.ajax({
@@ -64,7 +70,7 @@
             });
         }
         const response = await fetch(getUrl('Jelana/Snapshot'), {
-            headers: accessToken ? { 'X-Emby-Token': accessToken } : {}
+            headers: authHeaders()
         });
         if (response.status === 401 || response.status === 403) {
             throw new Error('AUTH_REQUIRED');
@@ -81,7 +87,7 @@
             });
         }
         const response = await fetch(getUrl('Jelana/Personal'), {
-            headers: accessToken ? { 'X-Emby-Token': accessToken } : {}
+            headers: authHeaders()
         });
         if (!response.ok) throw new Error(`HTTP_${response.status}`);
         return response.json();

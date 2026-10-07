@@ -1,6 +1,8 @@
 using System.Globalization;
+using Jellyfin.Data.Enums;
 using Jellyfin.Plugin.Jelana.Models;
 using MediaBrowser.Common.Configuration;
+using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using Microsoft.Data.Sqlite;
@@ -599,6 +601,7 @@ public sealed class PlaybackReportingReader
         SqliteConnection db,
         CancellationToken token)
     {
+        var currentItemsByTitle = CurrentItemsByTitle();
         await using var command = db.CreateCommand();
         command.CommandText = SessionCte("WHERE DateCreated >= $since14 AND ItemType IN ('Movie', 'Episode')") + """
             SELECT ItemId, ItemName, ItemType, UserId, date(DateCreated),
@@ -630,6 +633,12 @@ public sealed class PlaybackReportingReader
                     series = (
                         episode?.Series?.Id.ToString("N") ?? string.Empty,
                         episode?.Series?.Name ?? FallbackSeriesName(itemName));
+                    if (series.Id.Length == 0
+                        && currentItemsByTitle.TryGetValue(ItemTitleKey("Series", series.Name), out var replacement))
+                    {
+                        series = replacement;
+                    }
+
                     seriesByEpisode[itemId] = series;
                 }
 
@@ -640,6 +649,13 @@ public sealed class PlaybackReportingReader
             else
             {
                 type = "Movie";
+                var movie = Guid.TryParse(itemId, out var id) ? _library.GetItemById(id) : null;
+                if (movie is null
+                    && currentItemsByTitle.TryGetValue(ItemTitleKey(type, itemName), out var replacement))
+                {
+                    itemId = replacement.Id;
+                    itemName = replacement.Name;
+                }
             }
 
             var key = itemId.Length > 0 ? $"{type}:{itemId}" : $"{type}:{itemName.ToLowerInvariant()}";
@@ -669,6 +685,28 @@ public sealed class PlaybackReportingReader
                 x.ActiveDays))
             .ToList();
     }
+
+    private Dictionary<string, (string Id, string Name)> CurrentItemsByTitle() =>
+        _library.GetItemList(new InternalItemsQuery
+            {
+                Recursive = true,
+                IncludeItemTypes = [BaseItemKind.Movie, BaseItemKind.Series]
+            })
+            .GroupBy(
+                item => ItemTitleKey(item.GetBaseItemKind().ToString(), item.Name),
+                StringComparer.OrdinalIgnoreCase)
+            .Where(group => group.Count() == 1)
+            .ToDictionary(
+                group => group.Key,
+                group =>
+                {
+                    var item = group.Single();
+                    return (item.Id.ToString("N"), item.Name);
+                },
+                StringComparer.OrdinalIgnoreCase);
+
+    private static string ItemTitleKey(string type, string name) =>
+        $"{type}:{string.Join(' ', name.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))}";
 
     private sealed class TrendAggregate
     {

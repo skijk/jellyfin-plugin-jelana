@@ -1,7 +1,7 @@
 (() => {
     'use strict';
     const STYLE_ID = 'jelana-dashboard-styles';
-    const VERSION = '0.2.5.0';
+    const VERSION = '0.2.7.0';
     const embeddedInJellyfin = typeof window.ApiClient !== 'undefined';
     const basePath = embeddedInJellyfin
         ? ''
@@ -358,19 +358,27 @@
                 const type = document.createElement('small');
                 type.className = 'jelana-trending-type';
                 type.textContent = pick(row, 'type');
-                const current = Number(pick(row, 'currentPlays') || 0);
-                const previous = Number(pick(row, 'previousPlays') || 0);
-                const difference = current - previous;
-                const comparison = difference > 0
-                    ? `↑ ${difference} activity vs last week`
-                    : difference < 0
-                        ? `↓ ${Math.abs(difference)} activity vs last week`
-                        : 'no change vs last week';
                 const viewers = Number(pick(row, 'uniqueViewers') || 0);
-                const activeDays = Number(pick(row, 'activeDays') || 0);
+                const previousUniqueViewers = pick(row, 'previousUniqueViewers');
+                const hasViewerComparison = previousUniqueViewers !== null && previousUniqueViewers !== undefined;
+                const currentComparison = hasViewerComparison
+                    ? viewers
+                    : Number(pick(row, 'currentPlays') || 0);
+                const previousComparison = Number(hasViewerComparison
+                    ? previousUniqueViewers
+                    : pick(row, 'previousPlays') || 0);
+                const difference = currentComparison - previousComparison;
+                const comparisonUnit = hasViewerComparison
+                    ? `${Math.abs(difference) === 1 ? 'viewer' : 'viewers'}`
+                    : 'activity';
+                const comparison = difference > 0
+                    ? `↑ ${difference} ${comparisonUnit} vs last week`
+                    : difference < 0
+                        ? `↓ ${Math.abs(difference)} ${comparisonUnit} vs last week`
+                        : 'no change vs last week';
                 const value = document.createElement('strong');
                 value.textContent =
-                    `${viewers} ${viewers === 1 ? 'viewer' : 'viewers'} · ${activeDays} active ${activeDays === 1 ? 'day' : 'days'} · ${comparison}`;
+                    `${viewers} ${viewers === 1 ? 'viewer' : 'viewers'} this week · ${comparison}`;
                 meta.append(type, value);
                 item.append(link, meta);
                 return item;

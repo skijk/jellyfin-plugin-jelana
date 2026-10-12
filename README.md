@@ -35,12 +35,16 @@ Playback counts use the same 30-minute session-gap CTE as Jelana. Playback
 summaries, 7/30-day movie and series rankings, user rankings, daily activity,
 playback methods and clients are calculated from Playback Reporting.
 
-Trending is intentionally different from Most played. It ranks titles primarily
-by unique viewer count, so titles watched by multiple people stay ahead of
-single-viewer activity. Active days and week-over-week growth only break ties,
-and series activity is capped per viewer and day so one person's episode binge
-cannot dominate the list. Single-viewer titles fill otherwise empty shelf
-positions. Most played rankings remain volume-based.
+Trending is intentionally different from Most played. A person counts at most
+once per title in each seven-day period, regardless of restarts, repeat views or
+the number of series episodes watched. Short starts are ignored: a viewer must
+watch 20 percent of an item's runtime, clamped to 5–20 minutes. When runtime is
+unavailable, the fallback is 10 minutes for movies and 5 minutes for series.
+Fragments are added together before the threshold is evaluated.
+
+Titles need at least two qualified viewers. They are ranked by current unique
+viewers, unique-viewer growth over the previous week, and the days on which
+those viewers first watched. Most played rankings remain volume-based.
 
 There is deliberately no HTTP endpoint that rebuilds statistics. Refreshes only
 run through Jellyfin's scheduled-task system, ensuring that opening or reloading
@@ -98,7 +102,7 @@ to JS Injector:
         if (document.getElementById('jelana-menu-loader')) return;
         const script = document.createElement('script');
         script.id = 'jelana-menu-loader';
-        script.src = ApiClient.getUrl('Jelana/Menu.js', { version: '0.2.5.0' });
+        script.src = ApiClient.getUrl('Jelana/Menu.js', { version: '0.2.7.0' });
         document.head.appendChild(script);
     };
 

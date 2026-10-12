@@ -603,11 +603,12 @@ public sealed class PlaybackReportingReader
     {
         var currentItemsByTitle = CurrentItemsByTitle();
         await using var command = db.CreateCommand();
-        command.CommandText = SessionCte("WHERE DateCreated >= $since14 AND ItemType IN ('Movie', 'Episode')") + """
+        command.CommandText = """
             SELECT ItemId, ItemName, ItemType, UserId, date(DateCreated),
                    CASE WHEN DateCreated >= $since7 THEN 1 ELSE 0 END,
-                   SUM(NewPlay)
-            FROM sessions
+                   SUM(COALESCE(PlayDuration, 0))
+            FROM PlaybackActivity
+            WHERE DateCreated >= $since14 AND ItemType IN ('Movie', 'Episode')
             GROUP BY ItemId, ItemName, ItemType, UserId, date(DateCreated),
                      CASE WHEN DateCreated >= $since7 THEN 1 ELSE 0 END
             """;
@@ -621,15 +622,18 @@ public sealed class PlaybackReportingReader
             var itemId = rows.GetString(0);
             var itemName = rows.GetString(1);
             var type = rows.GetString(2);
+            var activityItemKey = $"{type}:{(itemId.Length > 0 ? itemId : itemName)}";
             var userId = rows.GetString(3);
             var day = rows.GetString(4);
             var isCurrent = rows.GetInt32(5) == 1;
-            var plays = rows.GetInt32(6);
+            var durationSeconds = rows.GetInt64(6);
+            long runtimeTicks = 0;
             if (type == "Episode")
             {
                 if (!seriesByEpisode.TryGetValue(itemId, out var series))
                 {
                     var episode = Guid.TryParse(itemId, out var id) ? _library.GetItemById(id) as Episode : null;
+                    runtimeTicks = episode?.RunTimeTicks ?? 0;
                     series = (
                         episode?.Series?.Id.ToString("N") ?? string.Empty,
                         episode?.Series?.Name ?? FallbackSeriesName(itemName));
@@ -641,6 +645,10 @@ public sealed class PlaybackReportingReader
 
                     seriesByEpisode[itemId] = series;
                 }
+                else if (Guid.TryParse(itemId, out var episodeId))
+                {
+                    runtimeTicks = (_library.GetItemById(episodeId) as Episode)?.RunTimeTicks ?? 0;
+                }
 
                 itemId = series.Id;
                 itemName = series.Name;
@@ -650,6 +658,7 @@ public sealed class PlaybackReportingReader
             {
                 type = "Movie";
                 var movie = Guid.TryParse(itemId, out var id) ? _library.GetItemById(id) : null;
+                runtimeTicks = movie?.RunTimeTicks ?? 0;
                 if (movie is null
                     && currentItemsByTitle.TryGetValue(ItemTitleKey(type, itemName), out var replacement))
                 {
@@ -665,15 +674,22 @@ public sealed class PlaybackReportingReader
                 items[key] = aggregate;
             }
 
-            aggregate.Add(userId, day, plays, isCurrent);
+            aggregate.Add(
+                userId,
+                activityItemKey,
+                day,
+                durationSeconds,
+                QualificationThresholdSeconds(runtimeTicks, type),
+                isCurrent);
         }
 
         return items.Values
-            .Where(x => x.CurrentActivity > 0)
+            .Where(x => x.UniqueViewers >= 2)
             .OrderByDescending(x => x.UniqueViewers)
-            .ThenByDescending(x => x.Score)
-            .ThenByDescending(x => x.CurrentActivity - x.PreviousActivity)
-            .ThenByDescending(x => x.CurrentActivity)
+            .ThenByDescending(x => x.UniqueViewers - x.PreviousUniqueViewers)
+            .ThenByDescending(x => x.ActiveDays)
+            .ThenByDescending(x => x.LatestViewerDay, StringComparer.Ordinal)
+            .ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
             .Take(16)
             .Select(x => new TrendingItem(
                 x.Id,
@@ -682,8 +698,20 @@ public sealed class PlaybackReportingReader
                 x.CurrentActivity,
                 x.PreviousActivity,
                 x.UniqueViewers,
+                x.PreviousUniqueViewers,
                 x.ActiveDays))
             .ToList();
+    }
+
+    private static long QualificationThresholdSeconds(long runtimeTicks, string type)
+    {
+        if (runtimeTicks <= 0)
+        {
+            return type == "Series" ? 300 : 600;
+        }
+
+        var runtimeSeconds = runtimeTicks / TimeSpan.TicksPerSecond;
+        return Math.Clamp((long)Math.Ceiling(runtimeSeconds * 0.20), 300, 1200);
     }
 
     private Dictionary<string, (string Id, string Name)> CurrentItemsByTitle() =>
@@ -710,8 +738,8 @@ public sealed class PlaybackReportingReader
 
     private sealed class TrendAggregate
     {
-        private readonly Dictionary<(string UserId, string Day), int> _current = new();
-        private readonly Dictionary<(string UserId, string Day), int> _previous = new();
+        private readonly Dictionary<string, ViewerActivity> _current = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, ViewerActivity> _previous = new(StringComparer.OrdinalIgnoreCase);
 
         public TrendAggregate(string id, string name, string type)
         {
@@ -726,30 +754,99 @@ public sealed class PlaybackReportingReader
 
         public string Type { get; }
 
-        public int CurrentActivity => Activity(_current);
+        public int CurrentActivity => Qualified(_current).Count();
 
-        public int PreviousActivity => Activity(_previous);
+        public int PreviousActivity => PreviousUniqueViewers;
 
-        public int UniqueViewers => _current.Keys.Select(key => key.UserId).Distinct().Count();
+        public int UniqueViewers => Qualified(_current).Count();
 
-        public int ActiveDays => _current.Keys.Select(key => key.Day).Distinct().Count();
+        public int PreviousUniqueViewers => Qualified(_previous).Count();
 
-        public int Score =>
-            (ActiveDays * 2)
-            + CurrentActivity
-            + (Math.Min(10, Math.Max(0, CurrentActivity - PreviousActivity)) * 2);
+        public int ActiveDays => Qualified(_current).Select(value => value.FirstDay).Distinct().Count();
 
-        public void Add(string userId, string day, int plays, bool current)
+        public string LatestViewerDay => Qualified(_current)
+            .Select(value => value.FirstDay)
+            .DefaultIfEmpty(string.Empty)
+            .Max(StringComparer.Ordinal) ?? string.Empty;
+
+        public void Add(
+            string userId,
+            string activityItemKey,
+            string day,
+            long durationSeconds,
+            long qualificationThresholdSeconds,
+            bool current)
         {
             var periods = current ? _current : _previous;
-            var key = (userId, day);
-            periods[key] = periods.GetValueOrDefault(key) + plays;
+            var normalizedUserId = userId.Replace("-", string.Empty, StringComparison.Ordinal).ToLowerInvariant();
+            if (!periods.TryGetValue(normalizedUserId, out var activity))
+            {
+                activity = new ViewerActivity();
+                periods[normalizedUserId] = activity;
+            }
+
+            activity.Add(activityItemKey, day, durationSeconds, qualificationThresholdSeconds);
         }
 
-        private int Activity(Dictionary<(string UserId, string Day), int> periods)
+        private static IEnumerable<ViewerActivity> Qualified(Dictionary<string, ViewerActivity> periods) =>
+            periods.Values.Where(value => value.IsQualified);
+    }
+
+    private sealed class ViewerActivity
+    {
+        private readonly Dictionary<string, ItemActivity> _items = new(StringComparer.OrdinalIgnoreCase);
+
+        public string FirstDay => _items.Values
+            .Where(value => value.IsQualified)
+            .Select(value => value.FirstDay)
+            .DefaultIfEmpty(string.Empty)
+            .Min(StringComparer.Ordinal) ?? string.Empty;
+
+        public bool IsQualified => _items.Values.Any(value => value.IsQualified);
+
+        public void Add(
+            string activityItemKey,
+            string day,
+            long durationSeconds,
+            long qualificationThresholdSeconds)
         {
-            var dailyCap = Type == "Series" ? 2 : 1;
-            return periods.Values.Sum(value => Math.Min(dailyCap, value));
+            if (!_items.TryGetValue(activityItemKey, out var activity))
+            {
+                activity = new ItemActivity(day, qualificationThresholdSeconds);
+                _items[activityItemKey] = activity;
+            }
+
+            activity.Add(day, durationSeconds, qualificationThresholdSeconds);
+        }
+    }
+
+    private sealed class ItemActivity
+    {
+        public ItemActivity(string day, long qualificationThresholdSeconds)
+        {
+            FirstDay = day;
+            QualificationThresholdSeconds = qualificationThresholdSeconds;
+        }
+
+        public string FirstDay { get; private set; }
+
+        public long DurationSeconds { get; private set; }
+
+        public long QualificationThresholdSeconds { get; private set; }
+
+        public bool IsQualified => DurationSeconds >= QualificationThresholdSeconds;
+
+        public void Add(string day, long durationSeconds, long qualificationThresholdSeconds)
+        {
+            if (string.CompareOrdinal(day, FirstDay) < 0)
+            {
+                FirstDay = day;
+            }
+
+            DurationSeconds += Math.Max(0, durationSeconds);
+            QualificationThresholdSeconds = Math.Min(
+                QualificationThresholdSeconds,
+                qualificationThresholdSeconds);
         }
     }
 

@@ -51,6 +51,7 @@ public sealed record TrendingItem(
     int CurrentPlays,
     int PreviousPlays,
     int UniqueViewers,
+    int PreviousUniqueViewers,
     int ActiveDays);
 public sealed record LibraryCounts(int Movies, int Series, int Episodes, int Users);
 public sealed record NewItemCounts(int Movies7, int Movies30, int Series7, int Series30);
